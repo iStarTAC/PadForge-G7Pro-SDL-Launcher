@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/PadForge.G7Pro.StartupHook/PadForge.G7Pro.StartupHook.csproj" />
+  <Project Path="src/PadForge.G7Pro.Launcher/PadForge.G7Pro.Launcher.csproj" />
+</Solution>
