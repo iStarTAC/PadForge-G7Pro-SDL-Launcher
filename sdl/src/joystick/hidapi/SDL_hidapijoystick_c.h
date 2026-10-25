@@ -1,0 +1,327 @@
+/*
+  Simple DirectMedia Layer
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
+
+  This software is provided 'as-is', without any express or implied
+  warranty.  In no event will the authors be held liable for any damages
+  arising from the use of this software.
+
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute it
+  freely, subject to the following restrictions:
+
+  1. The origin of this software must not be misrepresented; you must not
+     claim that you wrote the original software. If you use this software
+     in a product, an acknowledgment in the product documentation would be
+     appreciated but is not required.
+  2. Altered source versions must be plainly marked as such, and must not be
+     misrepresented as being the original software.
+  3. This notice may not be removed or altered from any source distribution.
+*/
+#include "SDL_internal.h"
+
+#ifndef SDL_JOYSTICK_HIDAPI_H
+#define SDL_JOYSTICK_HIDAPI_H
+
+#include "../usb_ids.h"
+
+// This is the full set of HIDAPI drivers available
+#define SDL_JOYSTICK_HIDAPI_GAMECUBE
+#define SDL_JOYSTICK_HIDAPI_GHL
+#define SDL_JOYSTICK_HIDAPI_INTEL_WIRELESS
+#define SDL_JOYSTICK_HIDAPI_LUNA
+#define SDL_JOYSTICK_HIDAPI_PS3
+#define SDL_JOYSTICK_HIDAPI_PS4
+#define SDL_JOYSTICK_HIDAPI_PS5
+#define SDL_JOYSTICK_HIDAPI_STADIA
+#define SDL_JOYSTICK_HIDAPI_STEAM
+#define SDL_JOYSTICK_HIDAPI_STEAMDECK
+#define SDL_JOYSTICK_HIDAPI_SWITCH
+#ifdef HAVE_LIBUSB
+#define SDL_JOYSTICK_HIDAPI_SWITCH2
+#define SDL_JOYSTICK_HIDAPI_XID
+#endif
+#define SDL_JOYSTICK_HIDAPI_WII
+#define SDL_JOYSTICK_HIDAPI_XBOX360
+#define SDL_JOYSTICK_HIDAPI_XBOXONE
+#define SDL_JOYSTICK_HIDAPI_SHIELD
+#define SDL_JOYSTICK_HIDAPI_STEAM_HORI
+#define SDL_JOYSTICK_HIDAPI_STEAM_TRITON
+#define SDL_JOYSTICK_HIDAPI_LG4FF
+#define SDL_JOYSTICK_HIDAPI_8BITDO
+#define SDL_JOYSTICK_HIDAPI_FLYDIGI
+#define SDL_JOYSTICK_HIDAPI_GAMESIR
+#define SDL_JOYSTICK_HIDAPI_GIP
+#define SDL_JOYSTICK_HIDAPI_SINPUT
+#define SDL_JOYSTICK_HIDAPI_ZUIKI
+// HID devices that Windows opens but leaves without a usable controller
+#define SDL_JOYSTICK_HIDAPI_SPEEDFORCE
+#define SDL_JOYSTICK_HIDAPI_RC_ADAPTER
+#define SDL_JOYSTICK_HIDAPI_GAMEVOICE
+#define SDL_JOYSTICK_HIDAPI_P5GLOVE
+#define SDL_JOYSTICK_HIDAPI_DREAMCHEEKY
+#define SDL_JOYSTICK_HIDAPI_NIA
+#define SDL_JOYSTICK_HIDAPI_GAMETRAK
+#define SDL_JOYSTICK_HIDAPI_RIFT_DK1
+#define SDL_JOYSTICK_HIDAPI_WMR
+#define SDL_JOYSTICK_HIDAPI_NIMBUS
+#define SDL_JOYSTICK_HIDAPI_PRODIKEYS
+// The DJI RC's bulk interface, run by the DJI remote module, which the
+// build compiles where the serial driver is (hifihedgehog/SDL#33 Part 6)
+#ifdef SDL_JOYSTICK_SERIAL
+#define SDL_JOYSTICK_HIDAPI_DJI_REMOTE
+#endif
+// I-Force wheels and joysticks on USB, read through libusb (hifihedgehog/SDL#33 Part 8)
+#ifdef HAVE_LIBUSB
+#define SDL_JOYSTICK_HIDAPI_IFORCE
+#endif
+// The Namco GunCon 2 on its vendor interface (hifihedgehog/SDL#33 Part 9)
+#define SDL_JOYSTICK_HIDAPI_GUNCON
+// Train controllers, read through libusb (hifihedgehog/SDL#33 Part 10)
+#ifdef HAVE_LIBUSB
+#define SDL_JOYSTICK_HIDAPI_TRAIN
+#endif
+
+// The Namco USIO arcade I/O board on its vendor interface (hifihedgehog/SDL#33 Part 14)
+#define SDL_JOYSTICK_HIDAPI_USIO
+
+// Konami's P3IO, whose commands go through libusb (hifihedgehog/SDL#33 Part 14)
+#ifdef HAVE_LIBUSB
+#define SDL_JOYSTICK_HIDAPI_KONAMI_P3IO
+#endif
+
+// Konami's P4IO, whose commands go through libusb (hifihedgehog/SDL#33 Part 14)
+#ifdef HAVE_LIBUSB
+#define SDL_JOYSTICK_HIDAPI_KONAMI_P4IO
+#endif
+
+// The CH Products Multi-Function Panel and the Ergodex DX1 on their vendor
+// interfaces (hifihedgehog/SDL#33 Part 14)
+#define SDL_JOYSTICK_HIDAPI_CHMFP
+#define SDL_JOYSTICK_HIDAPI_ERGODEX
+
+// The TrackIR 2 and TrackIR 3 on their vendor interface (hifihedgehog/SDL#33 Part 14)
+#define SDL_JOYSTICK_HIDAPI_TRACKIR
+
+// Tacx trainer head units on their vendor interface (hifihedgehog/SDL#33 Part 14)
+#define SDL_JOYSTICK_HIDAPI_TACX
+
+// Joystick capability definitions
+#define SDL_JOYSTICK_CAP_MONO_LED       0x00000001
+#define SDL_JOYSTICK_CAP_RGB_LED        0x00000002
+#define SDL_JOYSTICK_CAP_PLAYER_LED     0x00000004
+#define SDL_JOYSTICK_CAP_RUMBLE         0x00000010
+#define SDL_JOYSTICK_CAP_TRIGGER_RUMBLE 0x00000020
+
+// Whether HIDAPI is enabled by default
+#if defined(SDL_PLATFORM_ANDROID) || \
+    defined(SDL_PLATFORM_IOS) || \
+    defined(SDL_PLATFORM_TVOS) || \
+    defined(SDL_PLATFORM_VISIONOS)
+// On Android, HIDAPI prompts for permissions and acquires exclusive access to the device, and on Apple mobile platforms it doesn't do anything except for handling Bluetooth Steam Controllers, so we'll leave it off by default.
+#define SDL_HIDAPI_DEFAULT false
+#else
+#define SDL_HIDAPI_DEFAULT true
+#endif
+
+// The maximum size of a USB packet for HID devices
+#define USB_PACKET_LENGTH 64
+
+// Forward declaration
+struct SDL_HIDAPI_DeviceDriver;
+
+typedef struct SDL_HIDAPI_Device
+{
+    char *name;
+    char *manufacturer_string;
+    char *product_string;
+    char *path;
+    Uint16 vendor_id;
+    Uint16 product_id;
+    Uint16 version;
+    char *serial;
+    SDL_GUID guid;
+    int interface_number; // Available on Windows and Linux
+    int interface_class;
+    int interface_subclass;
+    int interface_protocol;
+    Uint16 usage_page; // Available on Windows and macOS
+    Uint16 usage;      // Available on Windows and macOS
+    bool is_bluetooth;
+    SDL_JoystickType joystick_type;
+    SDL_GamepadType type;
+    int steam_virtual_gamepad_slot;
+
+    struct SDL_HIDAPI_DeviceDriver *driver;
+    void *context;
+    SDL_hid_device *dev;
+    bool is_libusb; // dev came from the libusb backend
+    SDL_AtomicInt rumble_pending;
+    int num_joysticks;
+    SDL_JoystickID *joysticks;
+    // One joystick's name, or NULL to use name. A driver with several
+    // joysticks sets it, and the device clears it when its driver is released.
+    const char *(*GetJoystickName)(struct SDL_HIDAPI_Device *device, SDL_JoystickID instance_id);
+    // One joystick's GUID, or false to use guid. A driver whose joysticks are
+    // different kinds of device sets it, and the device clears it with
+    // GetJoystickName.
+    bool (*GetJoystickGUID)(struct SDL_HIDAPI_Device *device, SDL_JoystickID instance_id, SDL_GUID *guid);
+
+    // Used during scanning for device changes
+    bool seen;
+
+    // Used to flag devices that failed open
+    // This can happen on Windows with Bluetooth devices that have turned off
+    bool broken;
+
+    // The path is opened again at the next device change, after its open
+    // failed or its driver's reads ended, as when WinUSB is bound to the
+    // device while SDL runs. reopen_change_count is the device change count
+    // the scan had then.
+    bool reopen;
+    Uint32 reopen_change_count;
+
+    // Set by a driver whose reads ended while its path can stay listed, as a
+    // receiver slot's path does while the receiver's other slots read. The
+    // driver is released after its update, and the path reopens as above.
+    bool reads_ended;
+
+    struct SDL_HIDAPI_Device *parent;
+    int num_children;
+    struct SDL_HIDAPI_Device **children;
+
+    struct SDL_HIDAPI_Device *next;
+} SDL_HIDAPI_Device;
+
+typedef struct SDL_HIDAPI_DeviceDriver
+{
+    const char *name;
+    bool enabled;
+    void (*RegisterHints)(SDL_HintCallback callback, void *userdata);
+    void (*UnregisterHints)(SDL_HintCallback callback, void *userdata);
+    bool (*IsEnabled)(void);
+    bool (*IsSupportedDevice)(SDL_HIDAPI_Device *device, const char *name, SDL_GamepadType type, Uint16 vendor_id, Uint16 product_id, Uint16 version, int interface_number, int interface_class, int interface_subclass, int interface_protocol);
+    bool (*InitDevice)(SDL_HIDAPI_Device *device);
+    int (*GetDevicePlayerIndex)(SDL_HIDAPI_Device *device, SDL_JoystickID instance_id);
+    void (*SetDevicePlayerIndex)(SDL_HIDAPI_Device *device, SDL_JoystickID instance_id, int player_index);
+    bool (*UpdateDevice)(SDL_HIDAPI_Device *device);
+    bool (*OpenJoystick)(SDL_HIDAPI_Device *device, SDL_Joystick *joystick);
+    bool (*RumbleJoystick)(SDL_HIDAPI_Device *device, SDL_Joystick *joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble);
+    bool (*RumbleJoystickTriggers)(SDL_HIDAPI_Device *device, SDL_Joystick *joystick, Uint16 left_rumble, Uint16 right_rumble);
+    Uint32 (*GetJoystickCapabilities)(SDL_HIDAPI_Device *device, SDL_Joystick *joystick);
+    bool (*SetJoystickLED)(SDL_HIDAPI_Device *device, SDL_Joystick *joystick, Uint8 red, Uint8 green, Uint8 blue);
+    bool (*SendJoystickEffect)(SDL_HIDAPI_Device *device, SDL_Joystick *joystick, const void *data, int size);
+    bool (*SetJoystickSensorsEnabled)(SDL_HIDAPI_Device *device, SDL_Joystick *joystick, bool enabled);
+    void (*CloseJoystick)(SDL_HIDAPI_Device *device, SDL_Joystick *joystick);
+    void (*FreeDevice)(SDL_HIDAPI_Device *device);
+
+} SDL_HIDAPI_DeviceDriver;
+
+// HIDAPI device support
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverCombined;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverGameCube;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverGHL;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverGIP;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverIntelWireless;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverJoyCons;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverLuna;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverNintendoClassic;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverPS3;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverPS3ThirdParty;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverPS3SonySixaxis;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverPS4;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverPS5;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverShield;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverStadia;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverSteam;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverSteamDeck;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverSwitch;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverSwitch2;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverWii;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverXbox360;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverXbox360W;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverXbox360BB;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverXboxOne;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverXboxOriginal;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverSteelBattalion;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverSteamHori;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverSteamTriton;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverLg4ff;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_Driver8BitDo;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverFlydigi;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverGameSir;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverSInput;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverZUIKI;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverSpeedForce;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverRCAdapter;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverGameVoice;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverP5Glove;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverDreamCheeky;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverNIA;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverGametrak;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverRiftDK1;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverWMR;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverNimbus;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverDJIRemote;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverIForce;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverGunCon;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverTrain;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverProdikeys;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverUSIO;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverKonamiP3IO;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverKonamiP4IO;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverCHMFP;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverErgodex;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverTrackIR;
+extern SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverTacx;
+
+#define LOAD16(A, B)       (Sint16)((Uint16)(A) | (((Uint16)(B)) << 8))
+#define LOAD32(A, B, C, D) ((((Uint32)(A)) << 0) |  \
+                            (((Uint32)(B)) << 8) |  \
+                            (((Uint32)(C)) << 16) | \
+                            (((Uint32)(D)) << 24))
+
+// Return true if a HID device is present and supported as a joystick of the given type
+extern bool HIDAPI_IsDeviceTypePresent(SDL_GamepadType type);
+
+// Return true if a HID device is present and supported as a joystick. On
+// Windows a device read through libusb on an interface other than a HID
+// interface does not count, since it is bound to a driver no other joystick
+// backend reads.
+extern bool HIDAPI_IsDevicePresent(Uint16 vendor_id, Uint16 product_id, Uint16 version, const char *name);
+extern bool HIDAPI_IsDeviceSupportedByAnyDriver(Uint16 vendor_id, Uint16 product_id, Uint16 version, const char *name);
+
+// Return the name of a connected device, which should be freed with SDL_free(), or NULL if it's not available
+extern char *HIDAPI_GetDeviceProductName(Uint16 vendor_id, Uint16 product_id);
+
+// Return the manufacturer of a connected device, which should be freed with SDL_free(), or NULL if it's not available
+extern char *HIDAPI_GetDeviceManufacturerName(Uint16 vendor_id, Uint16 product_id);
+
+// Return the type of a joystick if it's present and supported
+extern SDL_JoystickType HIDAPI_GetJoystickTypeFromGUID(SDL_GUID guid);
+
+// Return the type of a game controller if it's present and supported
+extern SDL_GamepadType HIDAPI_GetGamepadTypeFromGUID(SDL_GUID guid);
+
+// Return the USB interface class of a connected device, or -1 if it's not present
+extern int HIDAPI_GetInterfaceClassFromGUID(SDL_GUID guid);
+
+extern void HIDAPI_UpdateDevices(void);
+extern void HIDAPI_SetDeviceName(SDL_HIDAPI_Device *device, const char *name);
+extern void HIDAPI_SetDeviceProduct(SDL_HIDAPI_Device *device, Uint16 vendor_id, Uint16 product_id);
+extern void HIDAPI_SetDeviceSerial(SDL_HIDAPI_Device *device, const char *serial);
+extern bool HIDAPI_HasConnectedUSBDevice(const char *serial);
+extern void HIDAPI_DisconnectBluetoothDevice(const char *serial);
+extern bool HIDAPI_JoystickConnected(SDL_HIDAPI_Device *device, SDL_JoystickID *pJoystickID);
+extern void HIDAPI_JoystickDisconnected(SDL_HIDAPI_Device *device, SDL_JoystickID joystickID);
+extern void HIDAPI_UpdateDeviceProperties(SDL_HIDAPI_Device *device);
+
+extern void HIDAPI_DumpPacket(const char *prefix, const Uint8 *data, int size);
+
+extern bool HIDAPI_IsXInputInterfacePath(SDL_HIDAPI_Device *device);
+
+extern bool HIDAPI_SupportsPlaystationDetection(SDL_HIDAPI_Device *device, Uint16 vendor, Uint16 product);
+
+extern float HIDAPI_RemapVal(float val, float val_min, float val_max, float output_min, float output_max);
+
+#endif // SDL_JOYSTICK_HIDAPI_H

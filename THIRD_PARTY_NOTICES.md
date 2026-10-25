@@ -5,10 +5,19 @@ trademarks remain the property of their respective owners.
 
 ## SDL
 
-`SDL3.dll` is built from the
-[SDL-GameSirG7Pro fork](https://github.com/iStarTAC/SDL-GameSirG7Pro), based on
-the PadForge SDL fork and SDL. SDL is distributed under the zlib license. Its
-complete source and license are available in that repository.
+`SDL3.dll` is built from the customized source included in this repository's
+`sdl/` directory. That tree is based on the PadForge SDL fork and SDL and was
+previously maintained as the SDL-GameSirG7Pro fork. SDL is distributed under
+the zlib license; the complete corresponding source, license, provenance, and
+private-fork warning are included here.
+
+## libusb
+
+The build downloads the official libusb 1.0.29 Windows SDK and links SDL to its
+dynamic interface. The SDK is build-time material and is not copied into this
+project's release package. PadForge supplies its own libusb runtime. libusb is
+licensed under LGPL-2.1-or-later; see the
+[libusb project](https://github.com/libusb/libusb).
 
 ## .NET
 

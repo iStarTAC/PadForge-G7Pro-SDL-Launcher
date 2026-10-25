@@ -331,6 +331,8 @@ int runReader(int argc, wchar_t** argv)
         std::cout << "context_enumeration=requested,queued_reads=4,background_windowless=" << !visible << '\n';
 #endif
         uint64_t target{}, packets{}, telemetry{}, focusEvents{}, malformed{}, writes{};
+        uint8_t batteryStatus{};
+        bool batteryValid = false;
         ULONGLONG deadline = GetTickCount64() + static_cast<ULONGLONG>(seconds) * 1000;
         ULONGLONG nextHeartbeat{}, nextSummary = GetTickCount64() + 1000;
 #ifndef G7PRO_TELEMETRY_SERVICE
@@ -399,12 +401,16 @@ int runReader(int argc, wchar_t** argv)
                         std::cout << "driver_focus,status=" << focus << '\n';
                         clockEvent(focus ? "driver_focus_gained" : "driver_focus_lost");
                     }
+                    if (target && header.device == target && header.command == 0x03 && header.length >= 1) {
+                        batteryStatus = payload[0];
+                        batteryValid = true;
+                    }
                     if (target && header.device == target && header.command == 0x10 &&
                         header.length == 60 && payload[0] == 0xe0) {
                         ++telemetry;
                         lastTelemetry = GetTickCount64();
                         if (serviceTransport::active) {
-                            auto frame = telemetryFrame(payload, header.flags, header.sequence);
+                            auto frame = telemetryFrame(payload, batteryStatus, batteryValid, header.sequence);
                             if (!serviceTransport::send(frame)) return 9;
                         }
                     }

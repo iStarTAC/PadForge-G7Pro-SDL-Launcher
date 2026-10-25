@@ -1,0 +1,40 @@
+/*
+  Simple DirectMedia Layer
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
+
+  This software is provided 'as-is', without any express or implied
+  warranty.  In no event will the authors be held liable for any damages
+  arising from the use of this software.
+
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute it
+  freely, subject to the following restrictions:
+
+  1. The origin of this software must not be misrepresented; you must not
+     claim that you wrote the original software. If you use this software
+     in a product, an acknowledgment in the product documentation would be
+     appreciated but is not required.
+  2. Altered source versions must be plainly marked as such, and must not be
+     misrepresented as being the original software.
+  3. This notice may not be removed or altered from any source distribution.
+*/
+#include "SDL_internal.h"
+
+
+/* Return true if the HIDAPI should ignore a device during enumeration */
+extern bool SDL_HIDAPI_ShouldIgnoreDevice(int bus_type, Uint16 vendor_id, Uint16 product_id, Uint16 usage_page, Uint16 usage, bool libusb, bool is_xbox);
+
+/* Sends an output report as SET_REPORT on the control pipe on Windows and
+   through libusb, where SDL_hid_write takes the first interrupt OUT endpoint
+   when one exists. On Linux and macOS the kernel sends it on the interrupt
+   OUT endpoint when the device has one, as SDL_hid_write does. The first byte
+   of data is the report ID, 0 for a device without report IDs. Returns the
+   number of bytes sent, or -1 on error, including on a backend that cannot
+   send one. */
+extern int SDL_hid_send_output_report(SDL_hid_device *device, const unsigned char *data, size_t length);
+
+/* Returns true for a device opened through the libusb backend. A driver whose
+   report form works around the Windows HID stack asks this, since libusb
+   sends reports whole on Windows as well. */
+extern bool SDL_hid_device_is_libusb(SDL_hid_device *device);
+

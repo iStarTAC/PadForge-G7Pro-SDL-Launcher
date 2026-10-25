@@ -33,30 +33,22 @@ connected. The reader stops when that client closes or telemetry stalls.
 ## Build and hardware-free validation
 
 ```powershell
-.\tools\G7ProTelemetryService\build.ps1
-.\tools\G7ProTelemetryService\install-service.ps1 -ValidateOnly
+.\service\G7ProTelemetryService\build.ps1
 ```
+
+The launcher runs the service's control-protocol and frame self-tests before
+installation.
 
 ## Installation
 
-Installation requires one explicitly approved elevated PowerShell invocation.
-It creates the automatic LocalSystem service `GameSirG7ProTelemetry`, protects
-its files under Program Files, and authorizes only the installing Windows user
-plus administrators and SYSTEM. Building and validation do not install or start
-anything.
+Open `LaunchPadForge.exe` and use **Install** under **Telemetry service**. The
+launcher creates the automatic LocalSystem service `GameSirG7ProTelemetry`,
+protects its files under Program Files, authorizes the installing Windows user
+plus administrators and SYSTEM, and starts it. No PowerShell script is needed.
 
-```powershell
-.\tools\G7ProTelemetryService\install-service.ps1
-```
-
-The service is registered but not started by the installer. Start it once or
-reboot. SDL then connects automatically when it opens a matching App Mode
-controller. Removal deletes only the service registration and retains protected
-files for audit:
-
-```powershell
-.\tools\G7ProTelemetryService\install-service.ps1 -Action Remove
-```
+The same launcher section can uninstall, start, stop, or restart the service.
+Uninstall removes the service registration and the files installed by the
+launcher.
 
 The initial protocol intentionally permits only one telemetry-owning process.
 Additional SDL processes retain ordinary GameInput controls but do not receive
@@ -67,8 +59,10 @@ paddles or motion until the owner disconnects.
 The dongle identity (`3537:109C`) was tested end to end on 24 October 2026 with
 the service installed as automatic LocalSystem and the modified SDL GameInput
 backend. SDL reported the standard six axes, one hat, rumble, trigger rumble,
-Share at button 11, the four independent paddles at buttons 12 through 15, and
-live gyroscope and accelerometer data. After SDL closed, the data pipe and GIP
+Guide and Share, the four independent paddles at raw joystick buttons 12
+through 15, live gyroscope and accelerometer data, and GIP battery status. A focused follow-up on
+25 October 2026 distinguished Guide (`button[5]`) from physical RB
+(`button[10]`) in SDL's internal GameInput layout. After SDL closed, the data pipe and GIP
 reader stopped while the service's control pipe remained available, confirming
 the intended passive-idle behavior.
 

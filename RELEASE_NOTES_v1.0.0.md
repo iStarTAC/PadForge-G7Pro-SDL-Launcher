@@ -6,12 +6,14 @@ Initial public Windows x64 release for the non-8K GameSir G7 Pro.
 
 - `LaunchPadForge.exe`, which starts an unchanged official PadForge build with
   the custom SDL runtime through the .NET startup-hook/native resolver path.
+- A self-contained `runtime` folder for the SDL override, startup hook, and
+  telemetry-service source binary.
 - The matching custom `SDL3.dll`, identifying the controller as
   `GameSir-G7 Pro (SDL)`.
-- The GameSir G7 Pro telemetry service and its installer for paddles, gyroscope,
-  and accelerometer data.
-- An autostart installer that registers the launcher, not `PadForge.exe`, with
-  Windows Task Scheduler.
+- The GameSir G7 Pro telemetry service plus launcher controls for installation,
+  removal, start, stop, and restart.
+- Launcher controls that register or remove silent PadForge auto-start through
+  Windows Task Scheduler without separate PowerShell scripts.
 
 ## Compatibility
 
@@ -23,7 +25,8 @@ Initial public Windows x64 release for the non-8K GameSir G7 Pro.
   Microsoft GameInput Redistributable.
 
 The official `PadForge.exe` is deliberately not included. Download it from the
-official PadForge releases page and copy the files in this package beside it.
+official PadForge releases page, then select its folder in the launcher. The
+launcher and its `runtime` folder can remain separate from PadForge.
 
 ## Important notices
 

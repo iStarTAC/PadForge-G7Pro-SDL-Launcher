@@ -1,0 +1,159 @@
+# BLE-GATT Switch 2 joystick driver: implementation design
+
+Implementation plan for [hifihedgehog/SDL#5](https://github.com/hifihedgehog/SDL/issues/5). This is the SDL-fork-session design doc that the issue #5 spec asked for. It pins the architecture and the exact WinRT-from-C symbols resolved from the installed SDK (`10.0.26100.0`) so the implementation compiles, then layers the BLE flow on top.
+
+Fork-only file. Bundled into PadForge. Not an upstream contribution. The upstream `SDL_hidapi_switch2.c` Bluetooth path stays the `// FIXME` stub. This driver claims the device at the BLE-GATT transport, which HIDAPI never sees.
+
+## 1. Shape
+
+New peer `SDL_JoystickDriver` `SDL_BLE_JoystickDriver` in `src/joystick/windows/SDL_ble_switch2joystick.c`, modeled byte-for-byte on the WGI driver (`SDL_windows_gaming_input.c`), SDL's existing WinRT-from-C joystick backend. WGI talks to `Windows.Gaming.Input`. This talks to `Windows.Devices.Bluetooth(.Advertisement|.GenericAttributeProfile)` plus `Windows.Storage.Streams`.
+
+Gated by:
+- build define `SDL_JOYSTICK_BLE` (whole `.c` wrapped in `#ifdef`),
+- hint `SDL_HINT_JOYSTICK_BLE_SWITCH2`, default OFF. `Init` returns `true` early when unset so the driver loads but never scans.
+
+The Switch 2 over BT is NOT HID-over-GATT. It advertises a custom 128-bit GATT service `ab7de9be-89fe-49ad-828f-118f09df7fd0`, so Windows never enumerates it as HID and hidapi cannot open it. This driver owns a WinRT BLE-GATT connection instead.
+
+## 2. Build wiring
+
+- `include/build_config/SDL_build_config.h.cmake`: add `#cmakedefine SDL_JOYSTICK_BLE 1` near `SDL_JOYSTICK_WGI`.
+- `include/build_config/SDL_build_config_windows.h`: `#define SDL_JOYSTICK_BLE 1` near the WGI define.
+- `CMakeLists.txt`: the Windows joystick `*.c` glob already picks up the new file. Set the feature flag next to `SDL_JOYSTICK_WGI`. No new link libs. Combase entrypoints are `GetProcAddress`'d at runtime (same as WGI), and all WinRT IIDs are `DEFINE_GUID`'d in-file (no `windowsapp.lib`).
+- `include/SDL3/SDL_hints.h`: define `SDL_HINT_JOYSTICK_BLE_SWITCH2 "SDL_JOYSTICK_BLE_SWITCH2"` with a doc comment mirroring `SDL_HINT_JOYSTICK_HIDAPI_SWITCH2`.
+- `src/joystick/SDL_sysjoystick.h`: add `extern SDL_JoystickDriver SDL_BLE_JoystickDriver`.
+- `src/joystick/SDL_joystick.c`: register under `#ifdef SDL_JOYSTICK_BLE`, after the other Windows drivers (BLE is a transport nothing else enumerates, so ordering is low-risk).
+
+## 3. WinRT-from-C strategy (the decisions that make it compile)
+
+Three problems and the chosen resolutions, all verified against the SDK headers.
+
+Since hifihedgehog/SDL#33 Part 12 this plumbing lives in `SDL_ble_gatt.c`, the WinRT transport the Switch 2 driver shares with the generic BLE GATT driver (`SDL_blegattjoystick.c`), and the Switch 2 driver calls it through `SDL_ble_gatt.h`. The move renamed the code and also changed it:
+
+- The awaits take an optional cancel flag. With a flag the wait runs in 50 ms slices and cancels the operation through `IAsyncInfo::Cancel` when the flag is set or the ceiling passes. The Switch 2 driver passes none and waits as before.
+- The value delegate hands the whole value to a callback with its context and characteristic index. The Switch 2 driver's callbacks copy the report and the command reply as the delegates did.
+- The status delegate carries an armed flag, so a Disconnected status before the link has been up is no loss. The Switch 2 driver registers on a link already up, so its delegate starts armed and reports the first Disconnected, as before.
+- The Received handler parses each event into an `SDL_BLEAdvertisement` and calls every listener. Matching Nintendo's company ID moved into the Switch 2 driver's listener (`BLE_OnAdvertisement`).
+- The characteristic write can require a Success status. Only the generic driver asks for that, so the Switch 2 driver still counts any completed write.
+- `SDL_BLEGATT_Init` counts its holders, resolves `WindowsGetStringRawBuffer` as well and creates the watcher lock, and it fails when the lock cannot be created.
+- The service lookup takes a list of UUIDs and a number of attempts, which the Switch 2 driver gives as its one service and 10.
+
+### 3a. Async: a strict completed-handler per operation type
+Every BLE call returns `IAsyncOperation<T>`. The awaiter is a hand-rolled `IAsyncOperationCompletedHandler<T>` delegate whose `QueryInterface` accepts only `IUnknown`, `IAgileObject` and the completed-handler PIID of the operation it waits on, AddRefs on success and returns `E_NOINTERFACE` for anything else, as the WGI driver's delegates do (`SDL_windows_gaming_input.c:340-342`). The PIIDs are MIDL-computed, so `SDL_ble_gatt.c` defines each one (`IID_AsyncDeviceHandler` and the rest) from the `declspec(uuid)` of its specialization in the SDK headers. An earlier permissive `QueryInterface` answered every IID but `IMarshal`, `IInspectable` included, and `put_Completed` refused that delegate with `CO_E_NOTSUPPORTED` (hifihedgehog/SDL#5). `put_Completed` is vtable slot 6 and `GetResults` slot 8 on every `IAsyncOperation<T>`, so one awaiter type serves every operation. The awaiter is reference-counted, so a wait that gives up at its ceiling never frees a delegate WinRT still holds. Every await runs on a worker thread, never on a WinRT callback thread.
+
+### 3b. IBufferByteAccess: hand-declared
+`robuffer.h` is C++-only. Declare the classic COM interface in-file:
+```c
+// IID_IBufferByteAccess 905a0fef-bc53-11df-8c49-001e4fc686da
+typedef struct IBufferByteAccessVtbl { /* QI, AddRef, Release, */ HRESULT (STDMETHODCALLTYPE *Buffer)(void *This, byte **value); } IBufferByteAccessVtbl;
+```
+QI an `IBuffer*` to it to read raw notification/read bytes.
+
+### 3c. Build IBuffer from bytes: DataWriter
+For GATT writes of commands and vibration (CCCD is an enum, not a buffer, so it skips this path): `RoActivateInstance(RuntimeClass_Windows_Storage_Streams_DataWriter)` then `IDataWriter` then `WriteBytes(n, bytes)` then `DetachBuffer(&ibuffer)`, pass to `WriteValueAsync`/`WriteValueWithOptionAsync`, then Release. `RoActivateInstance` is a combase export resolved like the other entrypoints.
+
+### 3d. Delegates (event handlers)
+Same hand-rolled-vtbl pattern as WGI (`SDL_windows_gaming_input.c:327-365`). For the two TypedEventHandlers the IIDs ARE in the headers, so strict QI like WGI:
+- Advertisement `Received`: `90eb4eca-d465-5ea0-a61c-033c8c5ecef2`.
+- GATT `ValueChanged`: `c1f420f6-6292-5760-a2c9-9ddf98683cfc`.
+
+### 3e. Apartment / threading
+`WIN_RoInitialize()` in `Init`, pin MTA with `CoIncrementMTAUsage`. BLE advertisement and ValueChanged fire on MTA thread-pool threads, exactly why WGI pins it (libsdl-org/SDL#5552). Connect/discover on a worker thread (await via 3a). `ValueChanged` pushes raw report bytes into a lock-protected ring buffer. The `Update` driver callback (SDL joystick thread) drains it and emits `SDL_SendJoystick*`. Never call `joystick->...` directly.
+
+## 4. Resolved WinRT symbols (SDK 10.0.26100.0)
+
+All C symbols prefixed `__x_ABI_CWindows_C...`. IIDs `DEFINE_GUID`'d in-file from these dashed strings. Contract-version gate: set `WINDOWS_FOUNDATION_UNIVERSALAPICONTRACT_VERSION` high enough (Device6/PreferredConnectionParameters need at least `0xd0000`) before the includes, or those macros compile out.
+
+### Advertisement (`windows.devices.bluetooth.advertisement.h`)
+- `...Advertisement_CIBluetoothLEAdvertisementWatcher` (`a6ac336f-f3d3-4297-8d6c-c81ea6623f40`): `put_ScanningMode`, `add_Received`, `remove_Received`, `Start`, `Stop`. Activatable via `RoActivateInstance(RuntimeClass_..._BluetoothLEAdvertisementWatcher)` then QI.
+- `...CIBluetoothLEAdvertisementWatcher2` (`01bf26bc-b164-5805-90a3-e8a7997ff225`): `put_AllowExtendedAdvertisements` (QI from base).
+- Received TypedEventHandler IID `90eb4eca-d465-5ea0-a61c-033c8c5ecef2`, `Invoke(This, sender, args)`.
+- `...CIBluetoothLEAdvertisementReceivedEventArgs` (`27987ddf-e596-41be-8d43-9e6731d4a913`): `get_BluetoothAddress(UINT64*)`, `get_Advertisement`.
+- `...CIBluetoothLEAdvertisement` (`066fb2b7-33d1-4e7d-8367-cf81d0f79653`): `get_ManufacturerData` returns `__FIVector_1_...ManufacturerData**`, iterate `get_Size`/`GetAt`.
+- `...CIBluetoothLEManufacturerData` (`912dba18-6963-4533-b061-4694dafb34e5`): `get_CompanyId(UINT16*)`, `get_Data(IBuffer**)`.
+- enum `BluetoothLEScanningMode_Active = 1`.
+
+### Device (`windows.devices.bluetooth.h`)
+- `CIBluetoothLEDeviceStatics` (`c8cf1a19-f0b6-4bf0-8689-41303de2d9f4`): `FromBluetoothAddressAsync(UINT64, IAsyncOperation<BluetoothLEDevice>**)`. RoGetActivationFactory(`RuntimeClass_..._BluetoothLEDevice`).
+- `CIBluetoothLEDevice` (`b5ee2f7b-4ad8-4642-ac48-80a0b500e887`): `get_ConnectionStatus`, `get_BluetoothAddress`, `add/remove_ConnectionStatusChanged`.
+- `CIBluetoothLEDevice3` (`aee9e493-44ac-40dc-af33-b2c13c01ca46`): `GetGattServicesAsync`, `GetGattServicesForUuidAsync(GUID, op**)`.
+- `CIBluetoothLEDevice6` (`ca7190ef-0cae-573c-a1ca-e1fc5bfc39e2`): `RequestPreferredConnectionParameters(params*, request**)`, sync, best-effort, try/catch. NOTE: on 6, not 5.
+- `CIBluetoothLEPreferredConnectionParametersStatics` (`0e3e8edc-2751-55aa-a838-8faeee818d72`): `get_ThroughputOptimized(params**)`. RoGetActivationFactory(`RuntimeClass_..._BluetoothLEPreferredConnectionParameters`).
+- `CIBluetoothAdapterStatics` (`8b02fb6a-ac4c-4741-8661-8eab7d17ea9f`): `GetDefaultAsync` (host MAC for optional pairing). `CIBluetoothAdapter` (`7974f04c-...`): `get_BluetoothAddress`.
+- enum `BluetoothConnectionStatus_Connected = 1`.
+
+### GATT (`windows.devices.bluetooth.genericattributeprofile.h`)
+- `...GenericAttributeProfile_CIGattDeviceServicesResult` (`171dd3ee-016d-419d-838a-576cf475a3d8`): `get_Status`, `get_Services(IVectorView<GattDeviceService>**)`.
+- `CIGattDeviceService` (`ac7b7c05-...`): `get_Uuid`. QI to `CIGattDeviceService3` (`b293a950-0c53-437c-a9b3-5c3210c6e569`): `GetCharacteristicsForUuidAsync(GUID, op**)`.
+- `CIGattCharacteristicsResult` (`1194945c-b257-4f3e-9db7-f68bc9a9aef2`): `get_Status`, `get_Characteristics(IVectorView<GattCharacteristic>**)`.
+- `CIGattCharacteristic` (`59cb50c1-5934-4f68-a198-eb864fa44e6b`): `get_Uuid`, `WriteValueAsync(IBuffer, op<GattCommunicationStatus>**)`, `WriteValueWithOptionAsync(IBuffer, GattWriteOption, op**)`, `WriteClientCharacteristicConfigurationDescriptorAsync(cccdEnum, op<GattCommunicationStatus>**)`, `add/remove_ValueChanged`.
+- ValueChanged TypedEventHandler IID `c1f420f6-6292-5760-a2c9-9ddf98683cfc`, `Invoke(This, sender, args)`.
+- `CIGattValueChangedEventArgs` (`d21bdb54-06e3-4ed8-a263-acfac8ba7313`): `get_CharacteristicValue(IBuffer**)`, `get_Timestamp`.
+- `CIGattReadResult` (`63a66f08-1aea-4c4c-a50f-97bae474b348`): `get_Status`, `get_Value(IBuffer**)`. Reads come back over the command/response GATT chars (see section 6), so this is mainly for completeness.
+- enums: `GattClientCharacteristicConfigurationDescriptorValue_Notify = 1`, `GattCommunicationStatus_Success = 0`, `GattWriteOption_WriteWithResponse = 0`, `GattWriteOption_WriteWithoutResponse = 1`.
+- IAsyncOperation result PIIDs, which section 3a does not use (the awaiter answers the completed-handler PIIDs instead): GattDeviceServicesResult `e7c667f6-e874-500f-86ff-760ca6f07a58`, GattCharacteristicsResult `0972194a-ac1c-5536-9886-27e58a18f273`, GattCommunicationStatus `3ff69516-1bfb-52e9-9ee6-e5cdb78e1683`, GattReadResult `d40432a8-1e14-51d0-b49b-ae2ce1aa05e5`, GattWriteResult `e83b4534-bd14-5a9b-a53b-17cc02a2a8a8`.
+
+### Storage.Streams (`windows.storage.streams.h`) plus robuffer
+- `CIBuffer`: `get_Length`, `get_Capacity`, `put_Length`.
+- `CIDataWriter`: `WriteBytes(UINT32, BYTE*)`, `DetachBuffer(IBuffer**)`. RoActivateInstance(`RuntimeClass_..._DataWriter`). IDataWriter IID: grep `IDataWriter :`/MIDL at implementation.
+- `IBufferByteAccess` (`905a0fef-bc53-11df-8c49-001e4fc686da`): `Buffer(byte**)`, hand-declared per section 3b.
+
+## 5. BLE flow (the driver lifecycle)
+
+`Init`: hint gate, then `SDL_BLEGATT_Init`, which runs `WIN_RoInitialize`, resolves the combase entrypoints (`CoIncrementMTAUsage`, `RoGetActivationFactory`, `RoActivateInstance`, `RoInitialize`, `RoUninitialize`, `WindowsCreateStringReference`, `WindowsDeleteString`, `WindowsGetStringRawBuffer`) and pins the MTA, counted so both BLE drivers can hold it. Both drivers call it from their `Init` and `SDL_BLEGATT_Quit` from their `Quit`, so `RoInitialize` and `RoUninitialize` run on the thread that initializes and quits the joystick subsystem. Then `SDL_BLEGATT_AddListener` adds the driver's advertisement callback to the shared watcher, which runs while any driver listens. Return true even if disabled.
+
+Discovery (the listener `BLE_OnAdvertisement`): the transport's `Received` handler parses each event into an `SDL_BLEAdvertisement`, with at most 4 manufacturer entries of up to 32 bytes after the company ID, and calls every listener. The Switch 2 listener walks those entries for `CompanyId == 0x0553` (Nintendo BLE company id, NOT the USB VID). Payload (company id stripped): `vendor=data[3:5]` (==0x057E), `product=data[5:7]` LE (Pro `0x2069`, JC2-R `0x2066`, JC2-L `0x2067`, GC `0x2073`), `reconnect_mac=data[10:16]`. The event's address is the connect handle. `BLE_TryReserveConnect` takes `SDL_LockJoysticks`, refuses once the driver has quit and reserves the address, and a worker thread then connects.
+
+Connect (NO SMP / NO OS pairing): `BluetoothLEDeviceStatics.FromBluetoothAddressAsync(addr)` then await then `IBluetoothLEDevice`. Do NOT `PairAsync` (SMP terminates the link). Best-effort `RequestPreferredConnectionParameters(ThroughputOptimized)` on `IBluetoothLEDevice6` (try/catch, roughly 15ms/66Hz vs default 60ms).
+
+GATT subscribe (order matters): `GetGattServicesForUuidAsync(service)`, then `GetCharacteristicsForUuidAsync` per char. The command response `c765a961-...` gets its `ValueChanged` handler and its CCCD, the stick calibration is read over the command channel, and then the input `...fd2` gets its handler and its CCCD, the order of switch2-controllers `controller.py` `connect()`. Handler before CCCD. A Joy-Con 2 then has 1.5 s to report on `...fd2`, and the driver picks its path from that (section 6a). The joystick is added after the choice, so a Joy-Con 2 that neither reports nor opens the console channel is never added, and its address backs off.
+
+`Open`: set counts (section 6), add the accelerometer, and the gyroscope except on the console path, `connection_state = WIRELESS`. `Update`: drain ring buffer, decode latest, emit. `Rumble`: stash amplitudes for the next vibration write. `Quit`: `SDL_BLEGATT_RemoveListener` first, which stops the watcher when no listener remains, then `BLE_FreeController` for every controller, which releases its interfaces, then `SDL_BLEGATT_Quit`, which runs RoUninitialize when the last holder leaves.
+
+GUID for free mapping: `SDL_CreateJoystickGUID(SDL_HARDWARE_BUS_BLUETOOTH, USB_VENDOR_NINTENDO, USB_PRODUCT_NINTENDO_SWITCH2_PRO, version, NULL, name, 'h', type)`. Signature `'h'` makes `SDL_CreateMappingForHIDAPIGamepad` fabricate the existing Switch2-Pro mapping (`SDL_gamepad.c:1135`). Emit buttons/axes/hat in the indices `HandleSwitchProState` uses (`SDL_hidapi_switch2.c:1074-1159`), reusing the `SDL_GAMEPAD_BUTTON_SWITCH2_PRO_*` enums for parity. Zero gamepad-DB edits.
+
+## 6. Per-type characteristics, decode, output
+
+Service `ab7de9be-89fe-49ad-828f-118f09df7fd0`. Input report 0x05 NOTIFY `...fd2` (handle 0x000A). Command write `649d4ac9-...f005` (0x0014). Command response NOTIFY `c765a961-...836a` (0x001A). Vibration write (per type, handle 0x0012): Pro `cc483f51-...2b05`, JC2-L `289326cb-...8241`, JC2-R `fa19b0fb-...c149`, GC `3f8fb670-...d064`.
+
+Input decode (BLE reports omit the leading report-ID, offsets per ndeadly/Nadeflore/joycon2cpp, confirm on hardware): `[4:8]` buttons u32 LE, `[10:13]` left stick 12-bit packed (`v=u24LE`, then `x=v&0xFFF`, `y=v>>12`), `[13:16]` right stick, `[48:54]` accel s16x3, `[54:60]` gyro s16x3, `[0x1F:0x21]` battery mV, `[0x29]==0x01` marker. Button bits: `Y=0x1 X=0x2 B=0x4 A=0x8 R=0x40 ZR=0x80 Minus=0x100 Plus=0x200 RStick=0x400 LStick=0x800 Home=0x1000 Capture=0x2000 C=0x4000 Down=0x10000 Up=0x20000 Right=0x40000 Left=0x80000 L=0x400000 ZL=0x800000`.
+
+Sticks use `BLE_ParseStickCalibration` and `BLE_MapStickAxis`, copies of the wired driver's `ParseStickCalibration` and `MapJoystickAxis`, which are file-static there. The calibration is read over the command channel: the user block, 0x0B bytes at `0x1FC040` for the first stick and `0x1FC080` for the second, when it starts with the `B2 A1` magic, else the factory block at `0x0130A8` or `0x0130E8`. These are the addresses and the magic of Linux v13 and the wired driver. A Joy-Con reads only the first. A 9-byte stick block of all 0xFF holds no calibration, as Linux v13 reads it, and the stick then maps linearly (hifihedgehog/SDL#38).
+
+IMU: add sensors at 250 Hz. Scale reuses wired IMU decode (`SDL_hidapi_switch2.c:1278-1370`) but verify the BLE raw-to-rad/s factor on hardware (`gyro_coeff=34.8f` may differ). Every type reads the motion block at `[48:60]` with the Pro Controller's offsets and scales. A single Joy-Con held sideways turns the axes as the wired driver turns them, and one held upright keeps them, as the Switch 1 driver does. The magnetometer, behind its hint, is three s16 at `[0x19:0x1F]` (hid_reports.md report 0x05).
+
+Command framing: `[cmd] 0x91 0x01 [subcmd] 0x00 [len] 0x00 0x00 [data...]` to `...f005`, response on `c765a961` at byte 8. The reply is the notification that echoes the command: the command at `[i]`, 0x01 at `[i+1]` and the subcommand at `[i+3]`, and for a memory read also the length at `[i+8]` and the address at `[i+12]`, so a late reply to an earlier read is never taken for a later one. Read-memory cmd `0x02/0x04`: data `[len] 7E 00 00 [addr u32 LE]` (max 0x4F). Player LED `0x09/0x07`: `[bitmask]` at least 4 bytes. Rumble (vibration char): packet-id byte plus 3x 5-byte VibrationData. Pro writes the group twice (L then R), packet_id high nibble `0x50|counter` wraps at 0x0F. VibrationData LE pack: `(lf_freq&0x1FF)|(en_lf<<9)|((lf_amp&0x3FF)<<10)|((hf_freq&0x1FF)<<20)|(en_hf<<29)|((hf_amp&0x3FF)<<30)`. SDL `Rumble(low,high)` maps low to lf_amp, high to hf_amp (scale 0-65535 to the 10-bit field).
+
+Optional persistence pairing (command `0x15`, NOT SMP) is for auto-reconnect only, out of M1 scope.
+
+### 6a. Joy-Con 2 clones: the console channel
+
+Third-party Joy-Con 2s such as the NYXI Hyperion 3 and Hyperion 3 Ultra copy a Joy-Con 2's identity and GATT table but never notify on `...fd2` (hifihedgehog/SDL#38). They stream only on the channel a Switch 2 console opens. A Joy-Con 2 silent on `...fd2` for 1.5 s after its CCCD gets the console session, as joycon2android `ConsoleSession` runs it:
+
+- `01 00` to the session start `00c5af5d-...-bd282`, with response.
+- Every command frame goes to the side's command characteristic behind 17 zero bytes: right `65a724b3-...27ff`, left `ce49a830-...dbea`. Replies arrive on the side's extended response, right `640ca58e-...690b` and left `63a3810f-...b996`, after 15 zero bytes, or on `c765a961`.
+- The console's own sequence (switch2_controller_research `bluetooth_interface.md` "JoyCon 2") without the pairing commands 0x15 and the two 0x03 commands after them, which carry the host's address, as joycon2android sends it: 07/01, a read of 0x40 bytes at 0x13000, 10/01, 16/01, 0A/02, the player LED, 0C/02 with features 0x37, reads of 0x13080, 0x1FC040, 0x13040 and 0x13100, 11/03, a read of 0x13060, 0A/08, 11/01 and 0C/04. Pairing would store this host on the controller and unpair it from its console. The console also subscribes `d3bd69d2-...-2a80` (handle 0x0022), which joycon2android and this driver leave alone.
+- `85 00` to the report-rate descriptor `679d5510-...6ecb` of the side's input, then the input's handler and CCCD: right `d5a9e01e-...f442`, left `cc1bbbb5-...a32a`.
+
+The stick calibration comes from the console's reads: the factory block at 0x28 in the read of 0x13080, then a user block at 0x1FC040 with its magic.
+
+The console report is 0x07 from the left and 0x08 from the right: buttons u16 LE at `[2:4]`, the stick packed 12-bit at `[5:8]`, then a motion block whose length byte is `[0x0E]` on the left and `[0x0F]` on the right. The accelerometer is an int16 in the high half of each of three 4-byte words from the block's start plus 0x12, 4096 to 1 g, with y opposite a genuine Joy-Con 2's (joycon2android `protocol.md` "Motion block"). A sample needs a length byte of at least 0x1C and zero low halves. No gyroscope reaches the console report, so a joystick on this path has only the accelerometer, which the session's features already run.
+
+The choice is made once per connection. A genuine Joy-Con 2 that missed the 1.5 s keeps the console path until it reconnects, and its unified reports are logged once and never decoded. The input-mode write `01 00 00 00 00 00 00 00 00 03 30` follows the first unified report, so a clone never receives it. A Hyperion 3 Ultra's vendor frames on `c765a961`, which start `EA 01 00 8B 00 78 00 00 0C`, are logged once and not decoded. Rumble on this path still writes the vibration characteristic, and whether a clone acts on it is not known.
+
+## 7. Milestones
+
+- **M1 (Pro Controller):** watcher, connect (no SMP), ThroughputOptimized, calib read, subscribe `...fd2`, decode buttons/sticks/gyro, surface via `'h'`+Switch2-Pro GUID (mapping fires free), reconnect. No rumble.
+- **M2:** rumble (vibration char), player LED, optional `0x15` persistence ceremony.
+- **M3:** Joy-Con 2 (L/R single plus merged), NSO GameCube (analog triggers `[0x3C]/[0x3D]`).
+- **Out of scope:** emulating a controller to a console, the 200 Hz vendor-HCI interval, headset audio chars.
+
+## 8. Hardware-gated unknowns (cannot verify without the controller)
+
+1. BLE report byte offsets (section 6). Confirm against one real `...fd2` capture. Wired offsets differ.
+2. Exact `__x_ABI_C...` symbol spellings compiling clean. The build is the gate. Some contract-version-gated interfaces may need the version bump.
+3. IMU raw-to-rad/s scale for BLE.
+4. Whether any Joy-Con 2 form factor needs the OS bond vs GATT-only. Prefer GATT-only, never trigger SMP.
+5. OS-version gates: ThroughputOptimized/`IBluetoothLEDevice6` need build 17763 or newer, `AllowExtendedAdvertisements` needs 1903 or newer. Degrade gracefully.
+6. The console path (section 6a) follows joycon2android, whose console reports were captured from a Hyperion 3, and the captures of PadForge discussion #491. No clone has run this driver.
+
+The compile is the only verification available in the SDL-fork environment. Everything in section 5 and section 6 is wire-format reasoning from the reference reimplementations until PadForge deploy-tests against hardware.

@@ -1,6 +1,8 @@
 artifacts/
 **/bin/
 **/obj/
+**/CMakeFiles/
+**/CMakeCache.txt
 *.user
 *.suo
 .vs/

@@ -1,0 +1,375 @@
+/*
+  Simple DirectMedia Layer
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
+
+  This software is provided 'as-is', without any express or implied
+  warranty.  In no event will the authors be held liable for any damages
+  arising from the use of this software.
+
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute it
+  freely, subject to the following restrictions:
+
+  1. The origin of this software must not be misrepresented; you must not
+     claim that you wrote the original software. If you use this software
+     in a product, an acknowledgment in the product documentation would be
+     appreciated but is not required.
+  2. Altered source versions must be plainly marked as such, and must not be
+     misrepresented as being the original software.
+  3. This notice may not be removed or altered from any source distribution.
+*/
+
+#ifndef usb_ids_h_
+#define usb_ids_h_
+
+// Definitions of useful USB VID/PID values
+
+#define USB_VENDOR_8BITDO       0x2dc8
+#define USB_VENDOR_ACTLABS      0x061c
+#define USB_VENDOR_AMAZON       0x1949
+#define USB_VENDOR_ANDGAMER     0x38d2
+#define USB_VENDOR_APPLE        0x05ac
+#define USB_VENDOR_ASTRO        0x9886
+#define USB_VENDOR_ASUS         0x0b05
+#define USB_VENDOR_AVB          0x05ef
+#define USB_VENDOR_BACKBONE     0x358a
+#define USB_VENDOR_CAPCOM       0x0a7b
+#define USB_VENDOR_CH_PRODUCTS  0x068e
+#define USB_VENDOR_CRKD         0x3651
+#define USB_VENDOR_CORSAIR      0x1b1c
+#define USB_VENDOR_CREATIVE     0x041e
+#define USB_VENDOR_GAMESIR      0x3537
+#define USB_VENDOR_DJI          0x2ca3
+#define USB_VENDOR_DRAGONRISE   0x0079
+#define USB_VENDOR_DREAMCHEEKY  0x1941
+#define USB_VENDOR_ERGODEX      0x1603
+#define USB_VENDOR_FLYDIGI_V1   0x04b4
+#define USB_VENDOR_FLYDIGI_V2   0x37d7
+#define USB_VENDOR_GOOGLE       0x18d1
+#define USB_VENDOR_GUILLEMOT    0x06f8
+#define USB_VENDOR_HARMONIX     0x1bad
+#define USB_VENDOR_HORI         0x0f0d
+#define USB_VENDOR_HP           0x03f0
+#define USB_VENDOR_HYPERKIN     0x2e24
+#define USB_VENDOR_IN2GAMES     0x14b7
+#define USB_VENDOR_INTEL        0x8086
+#define USB_VENDOR_ION          0x15e4
+#define USB_VENDOR_KONAMI       0x1ccf
+#define USB_VENDOR_LOGITECH     0x046d
+#define USB_VENDOR_MADCATZ      0x0738
+#define USB_VENDOR_MAYFLASH     0x33df
+#define USB_VENDOR_MICROSOFT    0x045e
+#define USB_VENDOR_MULTIPLE_1781 0x1781
+#define USB_VENDOR_NACON        0x146b
+#define USB_VENDOR_NACON_ALT    0x3285
+#define USB_VENDOR_NAMCO        0x0b9a
+#define USB_VENDOR_NATURALPOINT 0x131d
+#define USB_VENDOR_NIA          0x1234 // The OCZ NIA's placeholder ID
+#define USB_VENDOR_NINTENDO     0x057e
+#define USB_VENDOR_NVIDIA       0x0955
+#define USB_VENDOR_OCULUS       0x2833
+#define USB_VENDOR_P5           0x0d7f
+#define USB_VENDOR_PDP          0x0e6f
+#define USB_VENDOR_POWERA       0x24c6
+#define USB_VENDOR_POWERA_ALT   0x20d6
+#define USB_VENDOR_QANBA        0x2c22
+#define USB_VENDOR_RAZER        0x1532
+#define USB_VENDOR_RED_OCTANE   0x1430
+#define USB_VENDOR_RED_OCTANE_GAMES   0x3958
+#define USB_VENDOR_SAITEK       0x06a3
+#define USB_VENDOR_SCEA         0x12ba
+#define USB_VENDOR_SHANWAN      0x2563
+#define USB_VENDOR_SHANWAN_ALT  0x20bc
+#define USB_VENDOR_SONY         0x054c
+#define USB_VENDOR_STEELSERIES  0x1038
+#define USB_VENDOR_STEELSERIES_BT 0x0111 // Bluetooth SIG company ID
+#define USB_VENDOR_TACX         0x3561
+#define USB_VENDOR_TAITO        0x0ae4
+#define USB_VENDOR_THRUSTMASTER 0x044f
+#define USB_VENDOR_TRAIN_MASCON 0x1c06 // Pony Canyon, as OpenBVE names it
+#define USB_VENDOR_TURTLE_BEACH 0x10f5
+#define USB_VENDOR_SWITCH       0x2563
+#define USB_VENDOR_VALVE        0x28de
+#define USB_VENDOR_ZEROPLUS     0x0c12
+#define USB_VENDOR_RASPBERRYPI  0x2e8a // Commercial hardware from various companies are registered under this VID
+#define USB_VENDOR_ZUIKI        0x33dd
+
+#define USB_PRODUCT_8BITDO_SF30_PRO                       0x6000    // B + START
+#define USB_PRODUCT_8BITDO_SF30_PRO_BT                    0x6100    // B + START
+#define USB_PRODUCT_8BITDO_SN30_PRO                       0x6001    // B + START
+#define USB_PRODUCT_8BITDO_SN30_PRO_BT                    0x6101    // B + START
+#define USB_PRODUCT_8BITDO_PRO_2                          0x6003    // mode switch to D
+#define USB_PRODUCT_8BITDO_PRO_2_BT                       0x6006    // mode switch to D
+#define USB_PRODUCT_8BITDO_PRO_3                          0x6009    // mode switch to D
+#define USB_PRODUCT_8BITDO_ULTIMATE2_WIRELESS             0x6012    // mode switch to BT
+#define USB_PRODUCT_8BITDO_ULTIMATE2C_WIRELESS            0x301b    // mode switch to BT
+#define USB_PRODUCT_8BITDO_ULTIMATE3                      0x202f    // mode switch to BT
+#define USB_PRODUCT_AMAZON_LUNA_CONTROLLER                0x0419
+#define USB_PRODUCT_ACTLABS_FORCE_RS_C084                 0xc084
+#define USB_PRODUCT_ACTLABS_FORCE_RS_C094                 0xc094 // From the forcers INF package, not Linux
+#define USB_PRODUCT_ACTLABS_FORCE_RS_C0A4                 0xc0a4
+#define USB_PRODUCT_ASTRO_C40_XBOX360                     0x0024
+#define USB_PRODUCT_AVB_MAG_TURBO_FORCE                   0x8884
+#define USB_PRODUCT_AVB_TOP_SHOT_FFB_WHEEL                0x8888
+#define USB_PRODUCT_AVB_TOP_SHOT_PEGASUS                  0x020a
+#define USB_PRODUCT_BACKBONE_ONE_IOS                      0x0103
+#define USB_PRODUCT_BACKBONE_ONE_IOS_PS5                  0x0104
+#define USB_PRODUCT_BACKBONE_ONE_PS5_V2                   0x0304
+#define USB_PRODUCT_BDA_XB1_CLASSIC                       0x581a
+#define USB_PRODUCT_BDA_XB1_FIGHTPAD                      0x791a
+#define USB_PRODUCT_BDA_XB1_SPECTRA_PRO                   0x592a
+#define USB_PRODUCT_CH_PRODUCTS_MFP                       0x00f0
+#define USB_PRODUCT_CREATIVE_PRODIKEYS                    0x2801
+#define USB_PRODUCT_DJI_RC231                             0x1020 // From a user report, not a descriptor capture
+#define USB_PRODUCT_DJI_RC_RM330                          0x1023
+#define USB_PRODUCT_DREAMCHEEKY_DRUM_KIT                  0x8021 // Shared with a weather station and a missile launcher
+#define USB_PRODUCT_CAPCOM_STEEL_BATTALION                0xd000
+#define USB_PRODUCT_GOOGLE_DAYDREAM_CONTROLLER            0x9210 // From its Bluetooth LE PnP ID characteristic
+#define USB_PRODUCT_GOOGLE_STADIA_CONTROLLER              0x9400
+#define USB_PRODUCT_GUILLEMOT_FFB_RACING_WHEEL            0x0004
+#define USB_PRODUCT_GUILLEMOT_JET_LEADER_3D               0xa302
+#define USB_PRODUCT_GUILLEMOT_JET_LEADER_FFB              0x0003
+#define USB_PRODUCT_GUILLEMOT_RACE_LEADER_FFB             0x0001
+#define USB_PRODUCT_ERGODEX_DX1                           0x0002
+#define USB_PRODUCT_EVORETRO_GAMECUBE_ADAPTER1            0x1843
+#define USB_PRODUCT_EVORETRO_GAMECUBE_ADAPTER2            0x1844
+#define USB_PRODUCT_EVORETRO_GAMECUBE_ADAPTER3            0x1846
+#define USB_PRODUCT_FLYDIGI_V1_GAMEPAD                    0x2412
+#define USB_PRODUCT_FLYDIGI_V2_APEX                       0x2501
+#define USB_PRODUCT_FLYDIGI_V2_APEX6                      0x2502
+#define USB_PRODUCT_FLYDIGI_V2_VADER                      0x2401
+#define USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_HID            0x1022 // Non-8K G7 Pro standard HID mode
+#define USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_8K             0x10B8 // Wired/2.4G/Bluetooth 8K mode
+#define USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_APP_WIRED      0x109B // Non-8K G7 Pro wired App Mode
+#define USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_APP_DONGLE     0x109C // Non-8K G7 Pro 2.4 GHz App Mode
+#define USB_PRODUCT_GAMESIR_GAMEPAD_TARANTULA_8K          0x103C // Wired/2.4G/Bluetooth Tarantula 8K
+#define USB_PRODUCT_HARMONIX_WII_RB1_GUITAR               0x0004
+#define USB_PRODUCT_HARMONIX_WII_RB1_DRUMS                0x0005
+#define USB_PRODUCT_HARMONIX_WII_RB2_GUITAR               0x3010
+#define USB_PRODUCT_HARMONIX_WII_RB2_DRUMS                0x3110
+#define USB_PRODUCT_HARMONIX_WII_RB3_KEYBOARD             0x3330
+#define USB_PRODUCT_HARMONIX_WII_RB3_MPA_DRUMS_MODE       0x3138
+#define USB_PRODUCT_HARMONIX_WII_RB3_MPA_KEYBOARD_MODE    0x3338
+#define USB_PRODUCT_HARMONIX_WII_RB3_MPA_MUSTANG_MODE     0x3438
+#define USB_PRODUCT_HARMONIX_WII_RB3_MPA_SQUIER_MODE      0x3538
+#define USB_PRODUCT_HARMONIX_WII_RB3_MUSTANG_GUITAR       0x3430
+#define USB_PRODUCT_HARMONIX_WII_RB3_SQUIER_GUITAR        0x3530
+#define USB_PRODUCT_HORI_FIGHTING_STICK_ALPHA_PS4         0x011c
+#define USB_PRODUCT_HORI_FIGHTING_STICK_ALPHA_PS5         0x0184
+#define USB_PRODUCT_HORI_FIGHTING_STICK_ALPHA_PS5         0x0184
+#define USB_PRODUCT_HORI_STEAM_CONTROLLER                 0x01AB
+#define USB_PRODUCT_HORI_STEAM_CONTROLLER_BT              0x0196
+#define USB_PRODUCT_INTEL_WIRELESS_SERIES                 0xc013
+#define USB_PRODUCT_IN2GAMES_GAMETRAK                     0x0982
+#define USB_PRODUCT_ION_ICADE                             0x0132 // Over Bluetooth, as Linux matches it
+#define USB_PRODUCT_KONAMI_P3IO                           0x8008 // DDR SuperNova 2 and DDR X cabinets
+#define USB_PRODUCT_KONAMI_P4IO                           0x8010 // jubeat and DDR White cabinets
+#define USB_PRODUCT_KONAMI_BIO2_8040                      0x8040 // BIO2, a COM port on Windows' USB serial driver
+#define USB_PRODUCT_KONAMI_BIO2_804C                      0x804c // BIO2, a COM port on Windows' USB serial driver
+#define USB_PRODUCT_LOGITECH_F310                         0xc216
+#define USB_PRODUCT_LOGITECH_CHILLSTREAM                  0xcad1
+#define USB_PRODUCT_LOGITECH_SPEED_FORCE_WIRELESS         0xc29c
+#define USB_PRODUCT_LOGITECH_WINGMAN_FORCE                0xc281
+#define USB_PRODUCT_LOGITECH_WINGMAN_FORMULA_FORCE        0xc291
+#define USB_PRODUCT_MADCATZ_SAITEK_SIDE_PANEL_CONTROL_DECK 0x2218
+#define USB_PRODUCT_MADCATZ_XB1_STRATOCASTER_GUITAR       0x4161
+#define USB_PRODUCT_MADCATZ_XB1_DRUM_KIT                  0x4262
+#define USB_PRODUCT_MADCATZ_XB1_LEGACY_ADAPTER            0x4164
+#define USB_PRODUCT_NACON_REVOLUTION_5_PRO_PS4_WIRELESS   0x0d16
+#define USB_PRODUCT_NACON_REVOLUTION_5_PRO_PS4_WIRED      0x0d17
+#define USB_PRODUCT_NACON_REVOLUTION_5_PRO_PS5_WIRELESS   0x0d18
+#define USB_PRODUCT_NACON_REVOLUTION_5_PRO_PS5_WIRED      0x0d19
+#define USB_PRODUCT_NACON_REVOLUTION_X_UNLIMITED_BT       0x0689
+#define USB_PRODUCT_NAMCO_GUNCON2                         0x016a // Shared with the EMS LCD TopGun
+#define USB_PRODUCT_NAMCO_GUNCON3                         0x0800
+#define USB_PRODUCT_NAMCO_H050_USJC                       0x0900 // "H050 USJ(C) PCB rev00", used when it identifies as a USIO
+#define USB_PRODUCT_NAMCO_USIO                            0x0910 // "USIO PCB rev00"
+#define USB_PRODUCT_NATURALPOINT_TRACKIR2                 0x0150
+#define USB_PRODUCT_NATURALPOINT_TRACKIR3                 0x0155
+#define USB_PRODUCT_NINTENDO_GAMECUBE_ADAPTER             0x0337
+#define USB_PRODUCT_NINTENDO_N64_CONTROLLER               0x2019
+#define USB_PRODUCT_NINTENDO_SEGA_GENESIS_CONTROLLER      0x201e
+#define USB_PRODUCT_NINTENDO_SNES_CONTROLLER              0x2017
+#define USB_PRODUCT_NINTENDO_SWITCH_JOYCON_GRIP           0x200e
+#define USB_PRODUCT_NINTENDO_SWITCH_JOYCON_LEFT           0x2006
+#define USB_PRODUCT_NINTENDO_SWITCH_JOYCON_PAIR           0x2008 // Used by joycond
+#define USB_PRODUCT_NINTENDO_SWITCH_JOYCON_RIGHT          0x2007
+#define USB_PRODUCT_NINTENDO_SWITCH_PRO                   0x2009
+#define USB_PRODUCT_NINTENDO_SWITCH2_GAMECUBE_CONTROLLER  0x2073
+#define USB_PRODUCT_NINTENDO_SWITCH2_JOYCON_LEFT          0x2067
+#define USB_PRODUCT_NINTENDO_SWITCH2_JOYCON_PAIR          0x2068
+#define USB_PRODUCT_NINTENDO_SWITCH2_JOYCON_RIGHT         0x2066
+#define USB_PRODUCT_NINTENDO_SWITCH2_PRO                  0x2069
+#define USB_PRODUCT_NINTENDO_WII_REMOTE                   0x0306
+#define USB_PRODUCT_NINTENDO_WII_REMOTE2                  0x0330
+#define USB_PRODUCT_NIA                                   0x0000
+#define USB_PRODUCT_OCULUS_RIFT_DK1                       0x0001
+#define USB_PRODUCT_P5_GLOVE                              0x0100
+#define USB_PRODUCT_PHOENIXRC_ADAPTER                     0x0898
+#define USB_PRODUCT_NVIDIA_SHIELD_CONTROLLER_V103         0x7210
+#define USB_PRODUCT_NVIDIA_SHIELD_CONTROLLER_V104         0x7214
+#define USB_PRODUCT_PDP_ROCK_CANDY                        0x0246
+#define USB_PRODUCT_PDP_REALMZ_WIRELESS                   0x018c
+#define USB_PRODUCT_PDP_XB1_DRUM_KIT                      0x0171
+#define USB_PRODUCT_PDP_XB1_JAGUAR_GUITAR                 0x0170
+#define USB_PRODUCT_PDP_XB1_RIFFMASTER_GUITAR             0x0248
+#define USB_PRODUCT_POWERA_MINI                           0x541a
+#define USB_PRODUCT_RAZER_ATROX                           0x0a00
+#define USB_PRODUCT_RAZER_KITSUNE                         0x1012
+#define USB_PRODUCT_RAZER_PANTHERA                        0x0401
+#define USB_PRODUCT_RAZER_PANTHERA_EVO                    0x1008
+#define USB_PRODUCT_RAZER_RAIJU                           0x1000
+#define USB_PRODUCT_RAZER_RAIJU_V3_PRO_PS5_WIRED          0x1024
+#define USB_PRODUCT_RAZER_RAIJU_V3_PRO_PS5_WIRELESS       0x1026
+#define USB_PRODUCT_RAZER_TOURNAMENT_EDITION_USB          0x1007
+#define USB_PRODUCT_RAZER_TOURNAMENT_EDITION_BLUETOOTH    0x100a
+#define USB_PRODUCT_RAZER_ULTIMATE_EDITION_USB            0x1004
+#define USB_PRODUCT_RAZER_ULTIMATE_EDITION_BLUETOOTH      0x1009
+#define USB_PRODUCT_RAZER_WOLVERINE_V2                    0x0a29
+#define USB_PRODUCT_RAZER_WOLVERINE_V2_CHROMA             0x0a2e
+#define USB_PRODUCT_RAZER_WOLVERINE_V2_PRO_PS5_WIRED      0x100b
+#define USB_PRODUCT_RAZER_WOLVERINE_V2_PRO_PS5_WIRELESS   0x100c
+#define USB_PRODUCT_RAZER_WOLVERINE_V2_PRO_XBOX_WIRED     0x1010
+#define USB_PRODUCT_RAZER_WOLVERINE_V2_PRO_XBOX_WIRELESS  0x1011
+#define USB_PRODUCT_RAZER_WOLVERINE_V3_PRO                0x0a3f
+#define USB_PRODUCT_RED_OCTANE_PS4_GHLIVE_DONGLE          0x07bb
+#define USB_PRODUCT_RED_OCTANE_SKATEBOARD                 0x0100
+#define USB_PRODUCT_RED_OCTANE_XB1_GUITAR_HERO_LIVE_GUITAR 0x079b
+#define USB_PRODUCT_RED_OCTANE_XB1_STAGE_TOUR_GUITAR      0x4161
+#define USB_PRODUCT_RED_OCTANE_XB1_STAGE_TOUR_DRUMS       0xD300
+#define USB_PRODUCT_SAITEK_CYBORG_V3                      0xf622
+#define USB_PRODUCT_SAITEK_R440_FORCE_WHEEL               0xff04
+#define USB_PRODUCT_SCEA_PS3_GH_GUITAR                    0x0100
+#define USB_PRODUCT_SCEA_PS3_GH_DRUMS                     0x0120
+#define USB_PRODUCT_SCEA_PS3_RB_GUITAR                    0x0200
+#define USB_PRODUCT_SCEA_PS3_RB_DRUMS                     0x0210
+#define USB_PRODUCT_SCEA_PS3_RB3_KEYBOARD                 0x2330
+#define USB_PRODUCT_SCEA_PS3_RB3_MPA_DRUMS_MODE           0x0218
+#define USB_PRODUCT_SCEA_PS3_RB3_MPA_KEYBOARD_MODE        0x2338
+#define USB_PRODUCT_SCEA_PS3_RB3_MPA_MUSTANG_MODE         0x2438
+#define USB_PRODUCT_SCEA_PS3_RB3_MPA_SQUIER_MODE          0x2538
+#define USB_PRODUCT_SCEA_PS3_RB3_MUSTANG_GUITAR           0x2430
+#define USB_PRODUCT_SCEA_PS3_RB3_SQUIER_GUITAR            0x2530
+#define USB_PRODUCT_SCEA_PS3_TONY_HAWK_RIDE               0x0400
+#define USB_PRODUCT_SCEA_PS3_TOP_SHOT_ELITE               0x04a0
+#define USB_PRODUCT_SCEA_PS3_TOP_SHOT_FEARMASTER          0x04a1
+#define USB_PRODUCT_SCEA_PS3WIIU_GHLIVE                   0x074b
+#define USB_PRODUCT_SHANWAN_DS3                           0x0523
+#define USB_PRODUCT_SONY_DS3                              0x0268
+#define USB_PRODUCT_SONY_DS4                              0x05c4
+#define USB_PRODUCT_SONY_DS4_DONGLE                       0x0ba0
+#define USB_PRODUCT_SONY_DS4_SLIM                         0x09cc
+#define USB_PRODUCT_SONY_DS4_STRIKEPAD                    0x05c5
+#define USB_PRODUCT_SONY_DS5                              0x0ce6
+#define USB_PRODUCT_SONY_DS5_EDGE                         0x0df2
+#define USB_PRODUCT_STEALTH_ULTRA_WIRED                   0x7073
+#define USB_PRODUCT_SWITCH_RETRO_CONTROLLER               0x0575
+#define USB_PRODUCT_TACX_T1904                            0x1904 // White and green i-Magic head unit
+#define USB_PRODUCT_TACX_T1932                            0x1932 // White and blue Flow, Fortius and VR head unit
+#define USB_PRODUCT_TAITO_DENSHA_TYPE2                    0x0004
+#define USB_PRODUCT_TAITO_DENSHA_SHINKANSEN               0x0005
+#define USB_PRODUCT_TAITO_DENSHA_RYOJOHEN                 0x0007
+#define USB_PRODUCT_TAITO_MULTI_TRAIN_CONTROLLER          0x0101
+#define USB_PRODUCT_THQ_PS3_UDRAW                         0xcb17 // Vendor USB_VENDOR_POWERA_ALT
+#define USB_PRODUCT_THRUSTMASTER_ESWAPX_PRO_PS4           0xd00e
+#define USB_PRODUCT_THRUSTMASTER_MOTOR_SPORT_GT           0xa01c
+#define USB_PRODUCT_THRUSTMASTER_T_FLIGHT_HOTAS_ONE       0xb68c
+#define USB_PRODUCT_TRAIN_MASCON                          0x77a7
+#define USB_PRODUCT_VALVE_STEAM_CONTROLLER_DONGLE         0x1142
+#define USB_PRODUCT_VALVE_STEAM_PROTEUS_DONGLE            0x1304
+#define USB_PRODUCT_VALVE_STEAM_NEREID_DONGLE             0x1305
+#define USB_PRODUCT_VICTRIX_FS_PRO                        0x0203
+#define USB_PRODUCT_VICTRIX_FS_PRO_V2                     0x0207
+#define USB_PRODUCT_XBOX360_XUSB_CONTROLLER               0x02a1 // XUSB driver software PID
+#define USB_PRODUCT_XBOX360_WIRED_CONTROLLER              0x028e
+#define USB_PRODUCT_XBOX360_WIRELESS_RECEIVER             0x0719
+#define USB_PRODUCT_XBOX360_WIRELESS_RECEIVER_THIRDPARTY1 0x02a9
+#define USB_PRODUCT_XBOX360_WIRELESS_RECEIVER_THIRDPARTY2 0x0291
+#define USB_PRODUCT_XBOX360_BIGBUTTON_RECEIVER            0x02a0
+#define USB_PRODUCT_XBOX_ORIGINAL_PAD_V1                  0x0202
+#define USB_PRODUCT_XBOX_ORIGINAL_PAD_JAPAN               0x0285
+#define USB_PRODUCT_XBOX_ORIGINAL_CONTROLLER_S            0x0287
+#define USB_PRODUCT_XBOX_ORIGINAL_CONTROLLER_S_V2         0x0288
+#define USB_PRODUCT_XBOX_ORIGINAL_PAD_V2                  0x0289
+#define USB_PRODUCT_MICROSOFT_SIDEWINDER_GAME_VOICE       0x003b
+#define USB_PRODUCT_MICROSOFT_WMR_CONTROLLER              0x065b
+#define USB_PRODUCT_MICROSOFT_WMR_CONTROLLER_ODYSSEY      0x065d
+#define USB_PRODUCT_MICROSOFT_WMR_CONTROLLER_REVERB_G2    0x066a
+#define USB_PRODUCT_XBOX_ONE_ADAPTIVE                     0x0b0a
+#define USB_PRODUCT_XBOX_ONE_ADAPTIVE_BLUETOOTH           0x0b0c
+#define USB_PRODUCT_XBOX_ONE_ADAPTIVE_BLE                 0x0b21
+#define USB_PRODUCT_XBOX_ONE_ELITE_SERIES_1               0x02e3
+#define USB_PRODUCT_XBOX_ONE_ELITE_SERIES_2               0x0b00
+#define USB_PRODUCT_XBOX_ONE_ELITE_SERIES_2_BLUETOOTH     0x0b05
+#define USB_PRODUCT_XBOX_ONE_ELITE_SERIES_2_BLE           0x0b22
+#define USB_PRODUCT_XBOX_ONE_S                            0x02ea
+#define USB_PRODUCT_XBOX_ONE_S_REV1_BLUETOOTH             0x02e0
+#define USB_PRODUCT_XBOX_ONE_S_REV2_BLUETOOTH             0x02fd
+#define USB_PRODUCT_XBOX_ONE_S_REV2_BLE                   0x0b20
+#define USB_PRODUCT_XBOX_SERIES_X                         0x0b12
+#define USB_PRODUCT_XBOX_SERIES_X_BLE                     0x0b13
+#define USB_PRODUCT_XBOX_ONE_XBOXGIP_CONTROLLER           0x02ff // XBOXGIP driver software PID
+#define USB_PRODUCT_STEELSERIES_NIMBUS                    0x1420
+#define USB_PRODUCT_STEAM_VIRTUAL_GAMEPAD                 0x11ff
+#define USB_PRODUCT_HANDHELDLEGEND_SINPUT_GENERIC         0x10c6
+#define USB_PRODUCT_HANDHELDLEGEND_PROGCC                 0x10df
+#define USB_PRODUCT_HANDHELDLEGEND_GCULTIMATE             0x10dd
+#define USB_PRODUCT_BONZIRICHANNEL_FIREBIRD               0x10e0
+#define USB_PRODUCT_ZUIKI_MASCON_PRO                      0x0006
+#define USB_PRODUCT_ZUIKI_EVOTOP_UWB_DINPUT               0X001c
+#define USB_PRODUCT_ZUIKI_EVOTOP_PC_DINPUT                0X001d
+#define USB_PRODUCT_ZUIKI_EVOTOP_PC_BT                    0X0017
+#define USB_PRODUCT_ZUIKI_EVOTOP_AXIS_DINPUT              0X0020
+#define USB_PRODUCT_VOIDGAMING_PS4FIREBIRD                0x10e5
+#define USB_PRODUCT_VOIDGAMING_GENESIS_SINPUT             0x1014
+
+// USB usage pages
+#define USB_USAGEPAGE_GENERIC_DESKTOP 0x0001
+#define USB_USAGEPAGE_SIMULATION      0x0002
+#define USB_USAGEPAGE_DEVICE_CONTROLS 0x0006
+#define USB_USAGEPAGE_BUTTON          0x0009
+#define USB_USAGEPAGE_CONSUMER        0x000C
+#define USB_USAGEPAGE_VENDOR_FLYDIGI  0xFFA0
+
+// USB usages for USAGE_PAGE_GENERIC_DESKTOP
+#define USB_USAGE_GENERIC_POINTER             0x0001
+#define USB_USAGE_GENERIC_MOUSE               0x0002
+#define USB_USAGE_GENERIC_JOYSTICK            0x0004
+#define USB_USAGE_GENERIC_GAMEPAD             0x0005
+#define USB_USAGE_GENERIC_KEYBOARD            0x0006
+#define USB_USAGE_GENERIC_KEYPAD              0x0007
+#define USB_USAGE_GENERIC_MULTIAXISCONTROLLER 0x0008
+#define USB_USAGE_GENERIC_X                   0x0030
+#define USB_USAGE_GENERIC_Y                   0x0031
+#define USB_USAGE_GENERIC_Z                   0x0032
+#define USB_USAGE_GENERIC_RX                  0x0033
+#define USB_USAGE_GENERIC_RY                  0x0034
+#define USB_USAGE_GENERIC_RZ                  0x0035
+#define USB_USAGE_GENERIC_SLIDER              0x0036
+#define USB_USAGE_GENERIC_DIAL                0x0037
+#define USB_USAGE_GENERIC_WHEEL               0x0038
+#define USB_USAGE_GENERIC_HAT                 0x0039
+
+// USB usages for USB_USAGEPAGE_SIMULATION
+#define USB_USAGE_SIMULATION_ACCELERATOR      0x00C4
+#define USB_USAGE_SIMULATION_BRAKE            0x00C5
+
+// USB usages for USB_USAGEPAGE_DEVICE_CONTROLS
+#define USB_USAGE_DEVICE_CONTROLS_BATTERY_STRENGTH 0x0020
+
+// USB usages for USB_USAGEPAGE_CONSUMER
+#define USB_USAGE_CONSUMER_ASSIGN_SELECTION   0x0081
+#define USB_USAGE_CONSUMER_ORDER_MOVIE        0x0085
+#define USB_USAGE_CONSUMER_RECORD             0x00B2
+#define USB_USAGE_CONSUMER_AC_HOME            0x0223
+#define USB_USAGE_CONSUMER_AC_BACK            0x0224
+
+#define MAKE_USAGE(PAGE, USAGE) (((Uint32)PAGE) << 16 | USAGE)
+
+/* Bluetooth SIG assigned Company Identifiers
+   https://www.bluetooth.com/specifications/assigned-numbers/company-identifiers/ */
+#define BLUETOOTH_VENDOR_AMAZON 0x0171
+
+#define BLUETOOTH_PRODUCT_LUNA_CONTROLLER 0x0419
+
+#endif // usb_ids_h_
