@@ -201,11 +201,19 @@ namespace serviceTransport {
                                 response.requestId = request.requestId;
                                 reap();
                                 bool supported = request.command == gipControl::Command::status ||
+                                    request.command == gipControl::Command::prepare ||
                                     request.command == gipControl::Command::startReader ||
                                     request.command == gipControl::Command::stopReader;
                                 if (!gipControl::valid(request) || !supported) response.error = ERROR_INVALID_DATA;
                                 else if (!gipControl::allowed(request.command, running(), ownerPid, pid)) response.error = ERROR_BUSY;
-                                else if (request.command == gipControl::Command::startReader) {
+                                else if (request.command == gipControl::Command::prepare) {
+                                    if (running()) response.error = ERROR_BUSY;
+                                    else {
+                                        gipModeEntry::PrepareResult result{};
+                                        response.error = gipModeEntry::prepare(stop, result);
+                                        response.readerResult = static_cast<DWORD>(result);
+                                    }
+                                } else if (request.command == gipControl::Command::startReader) {
                                     if (running()) response.error = ERROR_BUSY;
                                     else {
                                         ResetEvent(sessionStop);
@@ -232,7 +240,7 @@ namespace serviceTransport {
                                     response.error = stopReader();
                                 }
                                 response.state = running() ? gipControl::State::reading : gipControl::State::idle;
-                                response.readerResult = readerResult;
+                                if (request.command != gipControl::Command::prepare) response.readerResult = readerResult;
                                 if (transfer(control, &response, sizeof(response), true, 1000)) {
                                     uint8_t ack{};
                                     transfer(control, &ack, 1, false, 1000);

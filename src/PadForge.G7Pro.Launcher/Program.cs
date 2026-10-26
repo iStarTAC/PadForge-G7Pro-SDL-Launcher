@@ -14,6 +14,7 @@ internal static class Program
     private const string OverrideVariable = "PADFORGE_SDL3_OVERRIDE";
     private const string LogVariable = "PADFORGE_G7PRO_HOOK_LOG";
     private const string VerifyVariable = "PADFORGE_G7PRO_VERIFY_HOOK";
+    internal static string? LastLaunchError { get; private set; }
 
     [STAThread]
     private static int Main(string[] args)
@@ -34,11 +35,12 @@ internal static class Program
 
     internal static int Launch(Paths paths, Options options, bool showErrors = true)
     {
+        LastLaunchError = null;
         try
         {
             string logPath = PrepareLog(paths, options);
             ValidateLaunchFiles(paths);
-            if (!options.SkipService) EnsureServiceRunning();
+            uint serviceProcessId = options.SkipService ? 0 : EnsureServiceRunning();
 
             WriteLog(logPath, $"PadForge={paths.PadForge}");
             WriteLog(logPath, $"StartupHook={paths.StartupHook}");
@@ -48,6 +50,12 @@ internal static class Program
                 WriteLog(logPath, "Dry-run validation completed successfully.");
                 ShowInformation($"Validation succeeded.\n\nLog: {logPath}", options);
                 return 0;
+            }
+
+            if (!options.SkipService)
+            {
+                string gipMode = TelemetryControlClient.EnsureGipMode(serviceProcessId);
+                WriteLog(logPath, $"XboxGipMode={gipMode}");
             }
 
             using Process process = StartPadForge(paths, options, logPath);
@@ -69,6 +77,7 @@ internal static class Program
         }
         catch (Exception error)
         {
+            LastLaunchError = error.GetBaseException().Message;
             LogError(error);
             if (showErrors) ShowError(error);
             return 1;
@@ -112,12 +121,13 @@ internal static class Program
     internal static void InstallAutostart(Paths paths) => NativeMaintenance.InstallAutostart(paths);
     internal static void UninstallAutostart() => NativeMaintenance.UninstallAutostart();
 
-    private static void EnsureServiceRunning()
+    private static uint EnsureServiceRunning()
     {
         using ServiceHandle manager = ServiceHandle.OpenManager();
         using ServiceHandle? service = manager.TryOpenService(ServiceName);
         if (service is null) throw new InvalidOperationException("The telemetry service is not installed. Install it from the launcher first.");
         service.EnsureRunning();
+        return service.RunningProcessId;
     }
 
     internal static bool IsAutostartInstalled()
@@ -253,6 +263,16 @@ internal sealed class ServiceHandle : SafeHandle
 
     public ServiceHandle OpenService(string name) => TryOpenService(name) ?? throw new InvalidOperationException($"Service {name} is not installed.");
     public string StatusText => QueryStatus().CurrentState switch { ServiceStopped => "Stopped", ServiceStartPending => "Starting", ServiceStopPending => "Stopping", ServiceRunning => "Running", _ => "Installed" };
+    public uint RunningProcessId
+    {
+        get
+        {
+            ServiceStatusProcess status = QueryStatus();
+            if (status.CurrentState != ServiceRunning || status.ProcessId == 0)
+                throw new InvalidOperationException("The telemetry service does not have a running process.");
+            return status.ProcessId;
+        }
+    }
 
     public void EnsureRunning()
     {

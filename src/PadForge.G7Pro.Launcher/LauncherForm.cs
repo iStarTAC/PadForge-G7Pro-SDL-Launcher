@@ -50,7 +50,7 @@ internal sealed class LauncherForm : Form
         themeButton.Margin = new Padding(8, 2, 0, 0);
         header.Controls.Add(themeButton, 1, 0);
         root.Controls.Add(header, 0, 0);
-        root.Controls.Add(new Label { AutoSize = true, Text = "Launch PadForge and manage its telemetry service.", Tag = MutedRole, Margin = new Padding(2, 0, 0, 0) }, 0, 1);
+        root.Controls.Add(new Label { AutoSize = true, Text = "Launch PadForge and manage its Xbox GIP service.", Tag = MutedRole, Margin = new Padding(2, 0, 0, 0) }, 0, 1);
         root.Controls.Add(BuildLaunchCard(), 0, 2);
         root.Controls.Add(BuildServiceCard(), 0, 3);
 
@@ -83,8 +83,11 @@ internal sealed class LauncherForm : Form
         actions.Controls.Add(MakeButton("Start PadForge", (_, _) => RunAction("PadForge started.", () =>
         {
             if (!EnsurePadForgeSelected()) return;
+            message.Text = "Preparing Xbox GIP mode…";
+            Application.DoEvents();
             if (Program.Launch(paths, Options.ForLaunch(paths.PadForge), showErrors: false) != 0)
-                throw new InvalidOperationException("PadForge could not be started. See the launcher error log for details.");
+                throw new InvalidOperationException(Program.LastLaunchError ??
+                    "PadForge could not be started. See the launcher error log for details.");
         })));
         actions.Controls.Add(MakeButton("Install auto-start", (_, _) =>
         {
@@ -103,7 +106,7 @@ internal sealed class LauncherForm : Form
         actions.Controls.Add(MakeButton("Start", (_, _) => RunAction("Service started.", Program.StartService), true));
         actions.Controls.Add(MakeButton("Stop", (_, _) => RunAction("Service stopped.", Program.StopService), true));
         actions.Controls.Add(MakeButton("Restart", (_, _) => RunAction("Service restarted.", Program.RestartService), true));
-        return Card("Telemetry service", new Label { AutoSize = true, Text = "Required for G7 Pro paddles, gyro, battery, and profile data.", Tag = MutedRole, Margin = new Padding(3, 4, 0, 2) }, serviceStatus, actions);
+        return Card("Xbox GIP service", new Label { AutoSize = true, Text = "Prepares GIP mode and supplies paddles, gyro, battery, and profile data.", Tag = MutedRole, Margin = new Padding(3, 4, 0, 2) }, serviceStatus, actions);
     }
 
     private static Control Card(string title, Control subtitle, Label status, Control actions)

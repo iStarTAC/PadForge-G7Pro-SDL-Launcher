@@ -24,4 +24,4 @@ if ($LASTEXITCODE -ne 0) { throw 'GameSir G7 Pro telemetry service build failed.
 if ($LASTEXITCODE -ne 0) { throw 'Control protocol self-test failed.' }
 & $output --frame-self-test
 if ($LASTEXITCODE -ne 0) { throw 'Telemetry frame self-test failed.' }
-Write-Host "Telemetry-only service built and verified: $output"
+Write-Host "Xbox GIP preparation and telemetry service built and verified: $output"

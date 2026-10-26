@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cwctype>
 #pragma comment(lib, "setupapi.lib")
+#include "GipModeEntry.h"
 #ifndef G7PRO_TELEMETRY_SERVICE
 #pragma comment(lib, "user32.lib")
 #pragma comment(lib, "runtimeobject.lib")
@@ -26,7 +27,6 @@
 #include "../G7ProTelemetryService/ServiceTransport.h"
 #else
 #include "ServiceTransport.h"
-#include "GipModeEntry.h"
 #endif
 #include "TelemetryFrame.h"
 
@@ -445,7 +445,8 @@ int runReader(int argc, wchar_t** argv)
 
 int wmain(int argc, wchar_t** argv) {
 #ifdef G7PRO_TELEMETRY_SERVICE
-    if (argc == 2 && !_wcsicmp(argv[1], L"--control-self-test")) return gipControl::selfTest() ? 0 : 1;
+    if (argc == 2 && !_wcsicmp(argv[1], L"--control-self-test"))
+        return gipControl::selfTest() && gipModeEntry::selfTest() ? 0 : 1;
     if (argc == 2 && !_wcsicmp(argv[1], L"--frame-self-test")) return telemetryFrameSelfTest() ? 0 : 1;
     if (argc == 2 && !_wcsicmp(argv[1], L"--service")) return serviceTransport::dispatch();
     std::cerr << "Use --service, --control-self-test, or --frame-self-test\n";
@@ -453,10 +454,15 @@ int wmain(int argc, wchar_t** argv) {
 #else
     if (argc == 2 && !_wcsicmp(argv[1], L"--control-self-test")) return gipControl::selfTest() ? 0 : 1;
     if (argc == 2 && !_wcsicmp(argv[1], L"--service-protocol-version")) return 4; // v2 wire + persistent backend
-    if (argc == 2 && !_wcsicmp(argv[1], L"--target-state")) return gipModeEntry::state();
+    if (argc == 2 && !_wcsicmp(argv[1], L"--target-state")) return static_cast<int>(gipModeEntry::state());
     if (argc == 2 && !_wcsicmp(argv[1], L"--frame-self-test")) return telemetryFrameSelfTest() ? 0 : 1;
     if (argc == 2 && !_wcsicmp(argv[1], L"--service")) return serviceTransport::dispatch();
-    if (argc == 2 && !_wcsicmp(argv[1], L"--prepare-gip-mode")) return gipModeEntry::prepare();
+    if (argc == 2 && !_wcsicmp(argv[1], L"--prepare-gip-mode")) {
+        Handle stop{CreateEventW(nullptr, TRUE, FALSE, nullptr)};
+        if (!stop.value) return static_cast<int>(GetLastError());
+        gipModeEntry::PrepareResult result{};
+        return static_cast<int>(gipModeEntry::prepare(stop.value, result));
+    }
     return runReader(argc, argv);
 #endif
 }

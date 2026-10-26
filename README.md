@@ -65,13 +65,20 @@ to confirm that its SDL import is still redirected.
   `GameSirG7ProTelemetry` LocalSystem service. The launcher requests elevation
   and exposes explicit install, uninstall, start, stop, and restart controls.
 
-The telemetry service and GameInput are separate parts of the data path. SDL
-uses GameInput for the controller's standard buttons, sticks, triggers, POV and
-rumble. The service directly opens the `\\.\XboxGIP_Admin` endpoint exposed by
+The telemetry service and GameInput are separate parts of the data path. Before
+PadForge starts, the launcher asks the service to ensure that the controller is
+in Xbox GIP mode. A healthy `3537:109B` or `3537:109C` device is accepted
+without sending anything. For one healthy `3537:100A` dongle and exactly one
+connected XInput controller, the service sends the fixed `gamesirapp` mode-entry
+sequence once and waits for stable `3537:109C` enumeration. It never retries the
+sequence automatically.
+
+SDL uses GameInput for the controller's standard buttons, sticks, triggers, POV
+and rumble. The service directly opens the `\\.\XboxGIP_Admin` endpoint exposed by
 Microsoft's `xboxgip.sys` driver to receive the private paddle and motion
-telemetry in the background. GameSir Nexus is useful for saving the required
-onboard profile, but it does not supply either Windows API and does not need to
-remain running while PadForge is used.
+telemetry in the background. GameSir Nexus is useful for configuring and saving
+an onboard profile, but it does not supply either Windows API and does not need
+to remain running while PadForge is used.
 
 ## Why the telemetry service is necessary
 
@@ -96,7 +103,9 @@ That distinction matters for the non-8K G7 Pro in Xbox GIP mode:
   tested Windows configuration with Developer Mode disabled.
 
 The service is consequently a deliberately small privilege boundary, not a
-second controller driver and not a virtual controller. It performs only the
+second controller driver and not a virtual controller. On an explicit,
+authenticated launcher request it performs the fixed, guarded Xbox GIP
+mode-entry check described above. While SDL is connected, it performs only the
 operations that require the working security context: open `XboxGIP_Admin`,
 subscribe to the target GIP device, maintain its verified `0x0F / F2 00`
 heartbeat, and read the GIP telemetry/status messages. The custom SDL DLL keeps
@@ -194,7 +203,8 @@ release is `55c6604a1` on the fork's `gamesir-g7-pro-padforge` branch.
 
 ## GameSir G7 Pro setup
 
-The preferred configuration is a profile-persisted Xbox GIP mode setup:
+An onboard profile that persists Xbox GIP mode remains the fastest and most
+reliable configuration:
 
 1. In GameSir Nexus, select the **G7 PRO XBOX** controller and use an onboard
    profile.
@@ -204,11 +214,18 @@ The preferred configuration is a profile-persisted Xbox GIP mode setup:
    `R5 -> R5`). Do not turn them into macros or remap them to ordinary buttons.
 4. Save the profile to the controller, then power-cycle or reconnect the
    controller and dongle. The saved profile should enumerate directly as
-   `3537:109C`; the launcher does not send the unreliable Xbox GIP mode-entry
-   sequence automatically.
+   `3537:109C`.
 5. Close Nexus and other SDL controller test programs, open
    `LaunchPadForge.exe`, and select **Start PadForge**. Only one SDL client
    should consume this telemetry path at a time.
+
+If the controller instead appears as one healthy `3537:100A` device, the
+launcher now asks the service to send the Xbox GIP mode-entry sequence once
+before starting PadForge. Disconnect other XInput controllers first, because
+the public XInput API cannot safely identify the correct slot when more than one
+is connected. Existing healthy `109B`/`109C` mode is always accepted without a
+transition. Missing, unhealthy, or ambiguous devices fail closed with reconnect
+guidance; the launcher never loops the mode-entry sequence.
 
 The Nexus report-rate selection is not what enables the private SDL telemetry
 path. The tested controller was shown at 250 Hz, while its Xbox GIP telemetry
@@ -344,7 +361,7 @@ Useful options:
 --padforge <path>   Select a PadForge executable outside this folder.
 --dry-run           Validate files, architecture, and service without launching.
 --verify-hook       Start PadForge only long enough to prove its SDL P/Invoke was redirected.
---skip-service      Do not inspect or start the telemetry service.
+--skip-service      Do not start, prepare, or inspect the telemetry service.
 --wait              Keep the launcher alive until PadForge exits.
 --quiet             Suppress successful validation dialogs.
 --                  Forward all remaining arguments to PadForge.
