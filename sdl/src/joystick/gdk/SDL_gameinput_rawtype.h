@@ -46,8 +46,8 @@ static int SDL_GameInputRawTypeForDevice(uint16_t vendor, uint16_t product)
     switch (vendor) {
     case USB_VENDOR_GAMESIR:
         switch (product) {
-        case USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_APP_WIRED:
-        case USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_APP_DONGLE:
+        case USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_GIP_WIRED:
+        case USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_GIP_DONGLE:
             return SDL_GAMEINPUT_RAWTYPE_GAMESIR_G7_PRO;
         default:
             break;

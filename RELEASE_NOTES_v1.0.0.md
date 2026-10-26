@@ -18,8 +18,8 @@ Initial public Windows x64 release for the non-8K GameSir G7 Pro.
 ## Compatibility
 
 - Tested end to end with official PadForge **5.1.0.0**.
-- Hardware-tested with GameSir App Mode dongle PID `3537:109C`.
-- The wired App Mode PID `3537:109B` is implemented but has not been
+- Hardware-tested with GameSir Xbox GIP mode dongle PID `3537:109C`.
+- The wired Xbox GIP mode PID `3537:109B` is implemented but has not been
   hardware-validated by this project.
 - Requires 64-bit Windows 10 version 1903 or later, or Windows 11, plus the
   Microsoft GameInput Redistributable.

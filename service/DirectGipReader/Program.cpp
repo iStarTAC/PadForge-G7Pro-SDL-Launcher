@@ -26,7 +26,7 @@
 #include "../G7ProTelemetryService/ServiceTransport.h"
 #else
 #include "ServiceTransport.h"
-#include "AppModeEntry.h"
+#include "GipModeEntry.h"
 #endif
 #include "TelemetryFrame.h"
 
@@ -453,10 +453,10 @@ int wmain(int argc, wchar_t** argv) {
 #else
     if (argc == 2 && !_wcsicmp(argv[1], L"--control-self-test")) return gipControl::selfTest() ? 0 : 1;
     if (argc == 2 && !_wcsicmp(argv[1], L"--service-protocol-version")) return 4; // v2 wire + persistent backend
-    if (argc == 2 && !_wcsicmp(argv[1], L"--target-state")) return appModeEntry::state();
+    if (argc == 2 && !_wcsicmp(argv[1], L"--target-state")) return gipModeEntry::state();
     if (argc == 2 && !_wcsicmp(argv[1], L"--frame-self-test")) return telemetryFrameSelfTest() ? 0 : 1;
     if (argc == 2 && !_wcsicmp(argv[1], L"--service")) return serviceTransport::dispatch();
-    if (argc == 2 && !_wcsicmp(argv[1], L"--prepare-app-mode")) return appModeEntry::prepare();
+    if (argc == 2 && !_wcsicmp(argv[1], L"--prepare-gip-mode")) return gipModeEntry::prepare();
     return runReader(argc, argv);
 #endif
 }

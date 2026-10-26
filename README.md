@@ -82,7 +82,7 @@ desktop session, integrity level, and background-access restrictions. Loading
 more native code into that process therefore does not make the protected
 `XboxGIP_Admin` device endpoint reliably available.
 
-That distinction matters for the non-8K G7 Pro in App Mode:
+That distinction matters for the non-8K G7 Pro in Xbox GIP mode:
 
 - GameInput supplies the ordinary controller state and rumble without special
   privileges, but it does not expose this firmware's four independent paddles,
@@ -116,6 +116,15 @@ interactive PadForge process as LocalSystem or finding a different supported
 capability model. The former is unsafe and unsuitable for a desktop UI; the
 latter has not been demonstrated for this device. A separate service keeps the
 high-privilege component narrow, auditable, and independently installable.
+
+Offline analysis also ruled out the driver's private focus-independent
+vendor-message subscription as an access bypass. IOCTL `0x40001D3C` can make a
+matching GIP command exempt from the normal foreground check, but the ordinary
+`XboxGIP` endpoint explicitly rejects that IOCTL. It is reachable through
+`XboxGIP_Admin` only after satisfying the same SYSTEM,
+Developer-Mode-plus-Administrators, or restricted-capability gate. It therefore
+does not remove the service requirement for elevated PadForge with Developer
+Mode disabled.
 
 ### Why runtime USB capture was not used
 
@@ -154,9 +163,9 @@ This package does not fork PadForge. It supplies a custom `SDL3.dll` built from
 the PadForge SDL fork, with a focused non-8K GameSir G7 Pro integration:
 
 - Adds the verified G7 Pro identities `3537:1022` (native HID), `3537:109B`
-  (wired App Mode), and `3537:109C` (2.4 GHz dongle App Mode).
+  (wired Xbox GIP mode), and `3537:109C` (2.4 GHz dongle Xbox GIP mode).
 - Extends SDL's Windows **GameInput v3** joystick backend for the `109B`/`109C`
-  Xbox GIP App Mode path. Normal sticks, triggers, buttons, POV and rumble remain
+  Xbox GIP path. Normal sticks, triggers, buttons, POV and rumble remain
   GameInput data.
 - Connects that backend to the authenticated `GameSirG7ProTelemetry`
   LocalSystem service for the private 65-byte GIP telemetry stream and the
@@ -171,10 +180,10 @@ the PadForge SDL fork, with a focused non-8K GameSir G7 Pro integration:
   The normal `3537:100A` XInput path is deliberately unchanged, and the
   `3537:1022` native-HID path exposes only controls verified for that transport.
 
-The hardware-tested path is the 2.4 GHz dongle in App Mode (`3537:109C`). The
-wired App Mode identity (`3537:109B`) is implemented from captured evidence but
-has not been hardware-validated by this project. This is not the G7 Pro 8K
-vendor-HID implementation: the non-8K App Mode transport and report layout are
+The hardware-tested path is the 2.4 GHz dongle in Xbox GIP mode (`3537:109C`).
+The wired Xbox GIP identity (`3537:109B`) is implemented from captured evidence
+but has not been hardware-validated by this project. This is not the G7 Pro 8K
+vendor-HID implementation: the non-8K Xbox GIP transport and report layout are
 Xbox GIP and must not be treated as the 8K protocol.
 
 The controller integration was developed with generative-AI assistance and is
@@ -185,7 +194,7 @@ release is `55c6604a1` on the fork's `gamesir-g7-pro-padforge` branch.
 
 ## GameSir G7 Pro setup
 
-The preferred configuration is a profile-persisted App Mode setup:
+The preferred configuration is a profile-persisted Xbox GIP mode setup:
 
 1. In GameSir Nexus, select the **G7 PRO XBOX** controller and use an onboard
    profile.
@@ -195,14 +204,14 @@ The preferred configuration is a profile-persisted App Mode setup:
    `R5 -> R5`). Do not turn them into macros or remap them to ordinary buttons.
 4. Save the profile to the controller, then power-cycle or reconnect the
    controller and dongle. The saved profile should enumerate directly as
-   `3537:109C`; the launcher does not send the unreliable App Mode transition
+   `3537:109C`; the launcher does not send the unreliable Xbox GIP mode-entry
    sequence automatically.
 5. Close Nexus and other SDL controller test programs, open
    `LaunchPadForge.exe`, and select **Start PadForge**. Only one SDL client
    should consume this telemetry path at a time.
 
 The Nexus report-rate selection is not what enables the private SDL telemetry
-path. The tested controller was shown at 250 Hz, while its App Mode telemetry
+path. The tested controller was shown at 250 Hz, while its Xbox GIP telemetry
 stream was independently observed at about 62.5 Hz.
 
 ## Which PadForge device to select
@@ -221,7 +230,7 @@ rows for this integration. Those are separate Xbox-compatible device entries.
 
 The `109B` and `109C` devices are owned by SDL's GameInput backend. Windows
 reports the generic product name **Xbox Gaming Device**, so this controller-
-specific SDL fork overrides only those two App Mode identities with
+specific SDL fork overrides only those two Xbox GIP identities with
 **GameSir-G7 Pro (SDL)**. Other GameInput devices retain their Windows names.
 The native-HID `3537:1022` backend uses **GameSir-G7 Pro** without the `(SDL)`
 suffix because it is a different transport. Windows `joy.cpl` may still show
@@ -231,8 +240,8 @@ inside PadForge, not the underlying Windows device or driver name.
 Use the VID:PID and capabilities—not the friendly name—as the definitive check:
 
 - `3537:109C` + 16 buttons + `GYRO, ACCEL`: custom SDL and telemetry are working.
-- `3537:109C` + 12 buttons and no sensors: App Mode is present, but the telemetry
-  service/client connection is not active.
+- `3537:109C` + 12 buttons and no sensors: Xbox GIP mode is present, but the
+  telemetry service/client connection is not active.
 - `3537:100A`: normal XInput mode; the four independent paddles and raw motion
   are unavailable through this launcher path.
 

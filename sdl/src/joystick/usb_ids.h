@@ -140,8 +140,8 @@
 #define USB_PRODUCT_FLYDIGI_V2_VADER                      0x2401
 #define USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_HID            0x1022 // Non-8K G7 Pro standard HID mode
 #define USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_8K             0x10B8 // Wired/2.4G/Bluetooth 8K mode
-#define USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_APP_WIRED      0x109B // Non-8K G7 Pro wired App Mode
-#define USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_APP_DONGLE     0x109C // Non-8K G7 Pro 2.4 GHz App Mode
+#define USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_GIP_WIRED      0x109B // Non-8K G7 Pro wired Xbox GIP mode
+#define USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_GIP_DONGLE     0x109C // Non-8K G7 Pro 2.4 GHz Xbox GIP mode
 #define USB_PRODUCT_GAMESIR_GAMEPAD_TARANTULA_8K          0x103C // Wired/2.4G/Bluetooth Tarantula 8K
 #define USB_PRODUCT_HARMONIX_WII_RB1_GUITAR               0x0004
 #define USB_PRODUCT_HARMONIX_WII_RB1_DRUMS                0x0005

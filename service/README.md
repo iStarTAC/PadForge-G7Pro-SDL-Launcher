@@ -1,15 +1,15 @@
 # GameSir G7 Pro SDL telemetry service
 
 This is a telemetry-only LocalSystem service for the non-8K GameSir G7 Pro in
-Xbox GIP App Mode (`3537:109B` wired or `3537:109C` dongle). It contains no
-virtual-controller, HIDMaestro, HidHide, profile-management, or App Mode entry
-code.
+Xbox GIP mode (`3537:109B` wired or `3537:109C` dongle). It contains no
+virtual-controller, HIDMaestro, HidHide, profile-management, or Xbox GIP
+mode-entry code.
 
 ## Runtime prerequisites
 
 - 64-bit Windows 10 version 1903 or later, or Windows 11. Windows 11 is the
   hardware-tested platform.
-- A connected GameSir G7 Pro already enumerated in Xbox GIP App Mode. The tested
+- A connected GameSir G7 Pro already enumerated in Xbox GIP mode. The tested
   identity is the 2.4 GHz dongle at `3537:109C`.
 - Microsoft's Xbox GIP device driver (`xboxgip.sys`) installed and active.
   Windows normally supplies it automatically through Plug and Play/Windows

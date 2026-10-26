@@ -101,8 +101,8 @@ static bool GAMEINPUT_InternalIsGamepad(const GameInputDeviceInfo *info)
 static bool GAMEINPUT_IsGameSirG7Pro(Uint16 vendor, Uint16 product)
 {
     return vendor == USB_VENDOR_GAMESIR &&
-           (product == USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_APP_WIRED ||
-            product == USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_APP_DONGLE);
+           (product == USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_GIP_WIRED ||
+            product == USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_GIP_DONGLE);
 }
 
 #if GAMEINPUT_API_VERSION >= 1
@@ -138,8 +138,8 @@ static Uint8 GAMEINPUT_GetDeviceRawType(const GameInputDeviceInfo *info)
 #if GAMEINPUT_API_VERSION >= 3
     GameInputKind supportedInput = info->supportedInput;
     if (info->vendorId == USB_VENDOR_GAMESIR &&
-        (info->productId == USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_APP_WIRED ||
-         info->productId == USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_APP_DONGLE) &&
+        (info->productId == USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_GIP_WIRED ||
+         info->productId == USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_GIP_DONGLE) &&
         (supportedInput & GameInputKindGamepad)) {
         return SDL_GAMEINPUT_RAWTYPE_GAMESIR_G7_PRO;
     }
@@ -216,10 +216,10 @@ static void QueryDeviceName(const GameInputDeviceInfo *info, Uint16 vendor_id, U
 
     *manufacturer_string = NULL;
     
-// GameSir G7 Pro in App Mode reports itself as "Xbox Gaming Device", so override the name
+// GameSir G7 Pro in Xbox GIP mode reports itself as "Xbox Gaming Device", so override the name
 if (vendor_id == USB_VENDOR_GAMESIR &&
-    (product_id == USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_APP_WIRED ||
-     product_id == USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_APP_DONGLE)) {
+    (product_id == USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_GIP_WIRED ||
+     product_id == USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_GIP_DONGLE)) {
     *product_string = SDL_strdup("GameSir-G7 Pro (SDL)");
     return;
 }
