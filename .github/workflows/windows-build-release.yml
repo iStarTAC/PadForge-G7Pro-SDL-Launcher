@@ -25,10 +25,10 @@ jobs:
 
     steps:
       - name: Check out the all-in-one source tree
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install the pinned .NET SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
 
@@ -41,7 +41,7 @@ jobs:
         run: Compress-Archive -Path '.\artifacts\win-x64\*' -DestinationPath '.\artifacts\PadForge-G7Pro-${{ github.ref_name }}-win-x64.zip' -CompressionLevel Optimal
 
       - name: Upload workflow artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: PadForge-G7Pro-${{ github.ref_name }}-win-x64
           path: artifacts/PadForge-G7Pro-${{ github.ref_name }}-win-x64.zip
