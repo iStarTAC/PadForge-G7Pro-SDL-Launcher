@@ -19,17 +19,30 @@ namespace gipModeEntry {
 
     constexpr TargetState classify(unsigned normal, unsigned gip, bool failed) {
         if (!normal && !gip) return TargetState::absent;
-        if (failed || normal + gip != 1) return TargetState::ambiguous;
+        if (failed) return TargetState::ambiguous;
+        // A profile can expose companion keyboard/mouse interfaces, and the old
+        // identity can briefly overlap the new one during re-enumeration.
+        // Prefer a healthy Xbox GIP identity whenever one is present.
         return gip ? TargetState::xboxGip : TargetState::normalXinput;
+    }
+
+    constexpr DWORD transitionFailure(TargetState finalState) {
+        if (finalState == TargetState::absent) return ERROR_NOT_FOUND;
+        if (finalState == TargetState::ambiguous) return ERROR_DEVICE_NOT_CONNECTED;
+        return ERROR_TIMEOUT;
     }
 
     inline bool selfTest() {
         return classify(0, 0, false) == TargetState::absent &&
             classify(1, 0, false) == TargetState::normalXinput &&
             classify(0, 1, false) == TargetState::xboxGip &&
-            classify(1, 1, false) == TargetState::ambiguous &&
-            classify(2, 0, false) == TargetState::ambiguous &&
-            classify(0, 1, true) == TargetState::ambiguous;
+            classify(1, 1, false) == TargetState::xboxGip &&
+            classify(2, 0, false) == TargetState::normalXinput &&
+            classify(0, 1, true) == TargetState::ambiguous &&
+            transitionFailure(TargetState::absent) == ERROR_NOT_FOUND &&
+            transitionFailure(TargetState::normalXinput) == ERROR_TIMEOUT &&
+            transitionFailure(TargetState::xboxGip) == ERROR_TIMEOUT &&
+            transitionFailure(TargetState::ambiguous) == ERROR_DEVICE_NOT_CONNECTED;
     }
 
     inline TargetState state() {
@@ -121,16 +134,21 @@ namespace gipModeEntry {
         if (cancelled) return ERROR_CANCELLED;
 
         int healthy = 0;
+        TargetState finalState = TargetState::normalXinput;
         for (int attempt = 0; attempt < 10; ++attempt) {
             if (WaitForSingleObject(stop, 1000) == WAIT_OBJECT_0) return ERROR_CANCELLED;
             TargetState current = state();
             if (current == TargetState::ambiguous) return ERROR_DEVICE_NOT_CONNECTED;
+            finalState = current;
             healthy = current == TargetState::xboxGip ? healthy + 1 : 0;
             if (healthy == 3) {
                 result = PrepareResult::transitioned;
                 return ERROR_SUCCESS;
             }
         }
-        return ERROR_TIMEOUT; // No reset and no automatic retry.
+        // A temporary absence is normal while the USB identity re-enumerates.
+        // Only classify it as missing if neither supported identity is present
+        // when the full transition window expires.
+        return transitionFailure(finalState); // No reset and no automatic retry.
     }
 }

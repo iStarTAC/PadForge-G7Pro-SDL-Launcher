@@ -10,6 +10,7 @@ namespace PadForge.G7Pro.Launcher;
 internal static class Program
 {
     internal const string ServiceName = "GameSirG7ProTelemetry";
+    internal const string ProjectUrl = "https://github.com/iStarTAC/PadForge-G7Pro-SDL-Launcher";
     private const string HookVariable = "DOTNET_STARTUP_HOOKS";
     private const string OverrideVariable = "PADFORGE_SDL3_OVERRIDE";
     private const string LogVariable = "PADFORGE_G7PRO_HOOK_LOG";
@@ -40,6 +41,9 @@ internal static class Program
         {
             string logPath = PrepareLog(paths, options);
             ValidateLaunchFiles(paths);
+            if (!options.DryRun && IsPadForgeRunning(paths))
+                throw new InvalidOperationException(
+                    "PadForge is already running. Close the existing PadForge window before starting it again.");
             uint serviceProcessId = options.SkipService ? 0 : EnsureServiceRunning();
 
             WriteLog(logPath, $"PadForge={paths.PadForge}");
@@ -54,8 +58,18 @@ internal static class Program
 
             if (!options.SkipService)
             {
+                ControllerConnection initialController = ControllerProbe.GetStatus(paths.Sdl);
+                WriteLog(logPath, $"ControllerBeforePrepare={initialController}");
+                RequireActiveController(initialController);
+                if (initialController == ControllerConnection.NormalMode)
+                {
+                    ControllerProbe.EnterXboxGipMode(paths.Sdl);
+                    WriteLog(logPath, "XboxGipModeSequence=sent through SDL");
+                }
+                ControllerConnection preparedController = WaitForXboxGipController(paths.Sdl);
+                WriteLog(logPath, $"ControllerAfterPrepare={preparedController}");
                 string gipMode = TelemetryControlClient.EnsureGipMode(serviceProcessId);
-                WriteLog(logPath, $"XboxGipMode={gipMode}");
+                WriteLog(logPath, $"ServiceXboxGipMode={gipMode}");
             }
 
             using Process process = StartPadForge(paths, options, logPath);
@@ -100,6 +114,43 @@ internal static class Program
         return service?.StatusText ?? "Not installed";
     }
 
+    internal static string GetControllerStatus(Paths paths) =>
+        ControllerProbe.Describe(ControllerProbe.GetStatus(paths.Sdl));
+
+    internal static bool IsPadForgeRunning(Paths paths)
+    {
+        string processName = Path.GetFileNameWithoutExtension(paths.PadForge);
+        if (string.IsNullOrWhiteSpace(processName)) return false;
+
+        Process[] processes = Process.GetProcessesByName(processName);
+        try
+        {
+            return processes.Any(process => process.Id != Environment.ProcessId && !process.HasExited);
+        }
+        finally
+        {
+            foreach (Process process in processes) process.Dispose();
+        }
+    }
+
+    internal static string DisplayVersion
+    {
+        get
+        {
+            Version version = typeof(Program).Assembly.GetName().Version ?? new Version(0, 0, 0);
+            return $"v{version.Major}.{version.Minor}.{version.Build}";
+        }
+    }
+
+    internal static void OpenProjectPage() => OpenShellTarget(ProjectUrl);
+
+    internal static void OpenLogs()
+    {
+        string directory = LogDirectory();
+        Directory.CreateDirectory(directory);
+        OpenShellTarget(directory);
+    }
+
     internal static void StartService()
     {
         using ServiceHandle manager = ServiceHandle.OpenManager();
@@ -130,6 +181,33 @@ internal static class Program
         return service.RunningProcessId;
     }
 
+    private static void RequireActiveController(ControllerConnection connection)
+    {
+        if (connection == ControllerConnection.NotDetected)
+            throw new InvalidOperationException(
+                "No active GameSir G7 Pro controller was detected by SDL. Connect or power on the controller and try again.");
+    }
+
+    private static ControllerConnection WaitForXboxGipController(string sdlPath)
+    {
+        Stopwatch timeout = Stopwatch.StartNew();
+        ControllerConnection current;
+        do
+        {
+            current = ControllerProbe.GetStatus(sdlPath);
+            if (current == ControllerConnection.XboxGipMode) return current;
+            Thread.Sleep(250);
+        } while (timeout.Elapsed < TimeSpan.FromSeconds(5));
+
+        if (current == ControllerConnection.NotDetected)
+            throw new InvalidOperationException(
+                "The Xbox GIP receiver is present, but SDL does not detect an active GameSir G7 Pro controller.");
+        if (current == ControllerConnection.NormalMode)
+            throw new TimeoutException(
+                "The active GameSir G7 Pro did not transition from normal mode to Xbox GIP mode.");
+        throw new InvalidOperationException("SDL returned an unknown GameSir G7 Pro connection state.");
+    }
+
     internal static bool IsAutostartInstalled()
     {
         var start = new ProcessStartInfo { FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "schtasks.exe"), UseShellExecute = false, CreateNoWindow = true };
@@ -152,7 +230,7 @@ internal static class Program
 
     private static string PrepareLog(Paths paths, Options options)
     {
-        string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PadForgeG7ProLauncher", "logs");
+        string directory = LogDirectory();
         Directory.CreateDirectory(directory);
         string path = Path.Combine(directory, $"{DateTime.Now:yyyyMMdd-HHmmss}-{(options.VerifyHook ? "verify" : "launch")}.log");
         WriteLog(path, $"LaunchPadForge {typeof(Program).Assembly.GetName().Version}");
@@ -161,6 +239,8 @@ internal static class Program
     }
 
     private static void WriteLog(string path, string message) => File.AppendAllText(path, $"{DateTimeOffset.Now:O} pid={Environment.ProcessId} {message}{Environment.NewLine}");
+    private static string LogDirectory() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PadForgeG7ProLauncher", "logs");
+    private static void OpenShellTarget(string target) => Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
     private static string Hash(string path) { using FileStream stream = File.OpenRead(path); return Convert.ToHexString(SHA256.HashData(stream)); }
     private static void ValidateFile(string path, string description) { if (!File.Exists(path)) throw new FileNotFoundException($"The {description} was not found.", path); }
 
@@ -182,7 +262,7 @@ internal static class Program
     {
         try
         {
-            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PadForgeG7ProLauncher", "launcher-error.log");
+            string path = Path.Combine(LogDirectory(), "launcher-error.log");
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.AppendAllText(path, $"{DateTimeOffset.Now:O} {error}{Environment.NewLine}");
         }

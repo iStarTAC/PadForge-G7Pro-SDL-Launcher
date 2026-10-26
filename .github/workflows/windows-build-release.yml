@@ -53,4 +53,11 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create '${{ github.ref_name }}' '.\artifacts\PadForge-G7Pro-${{ github.ref_name }}-win-x64.zip' --verify-tag --generate-notes --title 'PadForge G7 Pro ${{ github.ref_name }}'
+        run: |
+          $notesFile = '.\RELEASE_NOTES_${{ github.ref_name }}.md'
+          $archive = '.\artifacts\PadForge-G7Pro-${{ github.ref_name }}-win-x64.zip'
+          if (Test-Path -LiteralPath $notesFile) {
+            gh release create '${{ github.ref_name }}' $archive --verify-tag --notes-file $notesFile --title 'PadForge G7 Pro ${{ github.ref_name }}'
+          } else {
+            gh release create '${{ github.ref_name }}' $archive --verify-tag --generate-notes --title 'PadForge G7 Pro ${{ github.ref_name }}'
+          }

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\PadForge.G7Pro.Launcher\ControllerProbe.cs" Link="ControllerProbe.cs" />
+    <Compile Include="..\PadForge.G7Pro.Launcher\TelemetryControlClient.cs" Link="TelemetryControlClient.cs" />
+  </ItemGroup>
+</Project>

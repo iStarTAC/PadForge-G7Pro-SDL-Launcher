@@ -13,6 +13,16 @@
     <ApplicationIcon>Assets\launcher.ico</ApplicationIcon>
     <AssemblyName>LaunchPadForge</AssemblyName>
     <RootNamespace>PadForge.G7Pro.Launcher</RootNamespace>
+    <Product>PadForge G7 Pro Launcher</Product>
+    <AssemblyTitle>PadForge G7 Pro Launcher</AssemblyTitle>
+    <Description>Launches PadForge with GameSir G7 Pro Xbox GIP and SDL telemetry support.</Description>
+    <Authors>iStarTAC</Authors>
+    <Company>iStarTAC</Company>
+    <RepositoryUrl>https://github.com/iStarTAC/PadForge-G7Pro-SDL-Launcher</RepositoryUrl>
+    <VersionPrefix>1.2.0</VersionPrefix>
+    <AssemblyVersion>1.2.0.0</AssemblyVersion>
+    <FileVersion>1.2.0.0</FileVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <DebugType>embedded</DebugType>
   </PropertyGroup>
 </Project>

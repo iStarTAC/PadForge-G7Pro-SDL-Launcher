@@ -31,6 +31,7 @@ $serviceBuildScript = Join-Path $projectRoot 'service\G7ProTelemetryService\buil
 $serviceBuildDirectory = Join-Path $artifactRoot 'service-build'
 $hookProject = Join-Path $projectRoot 'src\PadForge.G7Pro.StartupHook\PadForge.G7Pro.StartupHook.csproj'
 $launcherProject = Join-Path $projectRoot 'src\PadForge.G7Pro.Launcher\PadForge.G7Pro.Launcher.csproj'
+$launcherProtocolTests = Join-Path $projectRoot 'src\PadForge.G7Pro.Launcher.ProtocolTests\PadForge.G7Pro.Launcher.ProtocolTests.csproj'
 $telemetry = Join-Path $serviceBuildDirectory 'GameSirG7ProTelemetry.exe'
 
 # SDL and its only build-time SDK dependency are deliberately owned by this
@@ -138,6 +139,8 @@ if ($VerifyOfficialBuild -and !(Test-Path -LiteralPath $PadForgePath -PathType L
 
 dotnet build $hookProject -c $configuration
 if ($LASTEXITCODE -ne 0) { throw 'Startup hook build failed.' }
+dotnet run --project $launcherProtocolTests -c $configuration
+if ($LASTEXITCODE -ne 0) { throw 'Launcher telemetry control protocol tests failed.' }
 dotnet publish $launcherProject -c $configuration -r $rid -o $publishDirectory
 if ($LASTEXITCODE -ne 0) { throw 'Launcher publish failed.' }
 

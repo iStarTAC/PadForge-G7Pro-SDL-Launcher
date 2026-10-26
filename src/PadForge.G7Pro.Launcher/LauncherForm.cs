@@ -11,17 +11,22 @@ internal sealed class LauncherForm : Form
     private const string MutedRole = "muted";
     private const string PrimaryButtonRole = "primary-button";
     private const string SecondaryButtonRole = "secondary-button";
+    private const string LinkRole = "link";
 
     private Paths paths;
     private readonly Label serviceStatus = StatusLabel();
+    private readonly Label controllerStatus = new() { AutoSize = true, Text = "Controller: checking…", Tag = MutedRole, Margin = new Padding(3, 2, 0, 2) };
     private readonly Label autostartStatus = StatusLabel();
     private readonly Label padForgePath = new() { AutoSize = false, AutoEllipsis = true, Dock = DockStyle.Fill, MinimumSize = new Size(0, 22), Tag = MutedRole, Margin = new Padding(3, 4, 0, 2) };
     private readonly Label padForgeFound = StatusLabel();
     private readonly Label message = new() { AutoSize = false, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, Tag = MutedRole };
     private readonly List<Button> actionButtons = [];
     private readonly Button themeButton;
+    private Button? startButton;
+    private readonly System.Windows.Forms.Timer controllerTimer = new() { Interval = 3000 };
     private ThemePreference themePreference;
     private bool darkMode;
+    private bool busy;
 
     public LauncherForm(Paths paths)
     {
@@ -58,7 +63,26 @@ internal sealed class LauncherForm : Form
         footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         footer.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         footer.Controls.Add(message, 0, 0);
-        footer.Controls.Add(MakeButton("Refresh", (_, _) => RefreshStatus(), true), 1, 0);
+        var footerActions = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            Anchor = AnchorStyles.Right,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            Tag = WindowRole,
+            Margin = Padding.Empty,
+        };
+        footerActions.Controls.Add(new Label
+        {
+            AutoSize = true,
+            Text = Program.DisplayVersion,
+            Tag = MutedRole,
+            Margin = new Padding(0, 11, 10, 0),
+        });
+        footerActions.Controls.Add(MakeLink("GitHub", (_, _) => RunUtilityAction(Program.OpenProjectPage)));
+        footerActions.Controls.Add(MakeLink("Open logs", (_, _) => RunUtilityAction(Program.OpenLogs)));
+        footerActions.Controls.Add(MakeButton("Refresh", (_, _) => RefreshStatus(), true));
+        footer.Controls.Add(footerActions, 1, 0);
         root.Controls.Add(footer, 0, 4);
         Controls.Add(root);
 
@@ -67,7 +91,10 @@ internal sealed class LauncherForm : Form
         {
             RefreshStatus();
             UpdatePadForgePath();
+            controllerTimer.Start();
         };
+        controllerTimer.Tick += (_, _) => RefreshLiveStatus();
+        FormClosed += (_, _) => controllerTimer.Dispose();
     }
 
     protected override void WndProc(ref Message m)
@@ -80,15 +107,8 @@ internal sealed class LauncherForm : Form
     private Control BuildLaunchCard()
     {
         FlowLayoutPanel actions = ActionsPanel();
-        actions.Controls.Add(MakeButton("Start PadForge", (_, _) => RunAction("PadForge started.", () =>
-        {
-            if (!EnsurePadForgeSelected()) return;
-            message.Text = "Preparing Xbox GIP mode…";
-            Application.DoEvents();
-            if (Program.Launch(paths, Options.ForLaunch(paths.PadForge), showErrors: false) != 0)
-                throw new InvalidOperationException(Program.LastLaunchError ??
-                    "PadForge could not be started. See the launcher error log for details.");
-        })));
+        startButton = MakeButton("Start PadForge", (_, _) => StartPadForge());
+        actions.Controls.Add(startButton);
         actions.Controls.Add(MakeButton("Install auto-start", (_, _) =>
         {
             if (EnsurePadForgeSelected()) RunAction("Auto-start installed.", () => Program.InstallAutostart(paths));
@@ -96,6 +116,27 @@ internal sealed class LauncherForm : Form
         actions.Controls.Add(MakeButton("Uninstall auto-start", (_, _) => RunAction("Auto-start removed.", Program.UninstallAutostart), true));
         UpdatePadForgePath();
         return ApplicationCard(actions);
+    }
+
+    private void StartPadForge()
+    {
+        if (!EnsurePadForgeSelected()) return;
+        if (Program.IsPadForgeRunning(paths))
+        {
+            message.Text = "PadForge is already running.";
+            UpdateStartButton();
+            return;
+        }
+
+        if (startButton is not null) startButton.Text = "Starting PadForge…";
+        message.Text = "Preparing Xbox GIP mode…";
+        Application.DoEvents();
+        RunAction("PadForge started.", () =>
+        {
+            if (Program.Launch(paths, Options.ForLaunch(paths.PadForge), showErrors: false) != 0)
+                throw new InvalidOperationException(Program.LastLaunchError ??
+                    "PadForge could not be started. See the launcher error log for details.");
+        });
     }
 
     private Control BuildServiceCard()
@@ -106,7 +147,10 @@ internal sealed class LauncherForm : Form
         actions.Controls.Add(MakeButton("Start", (_, _) => RunAction("Service started.", Program.StartService), true));
         actions.Controls.Add(MakeButton("Stop", (_, _) => RunAction("Service stopped.", Program.StopService), true));
         actions.Controls.Add(MakeButton("Restart", (_, _) => RunAction("Service restarted.", Program.RestartService), true));
-        return Card("Xbox GIP service", new Label { AutoSize = true, Text = "Prepares GIP mode and supplies paddles, gyro, battery, and profile data.", Tag = MutedRole, Margin = new Padding(3, 4, 0, 2) }, serviceStatus, actions);
+        var details = new FlowLayoutPanel { AutoSize = true, Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false, Tag = CardRole, Margin = Padding.Empty };
+        details.Controls.Add(new Label { AutoSize = true, Text = "Verifies GIP mode and supplies paddles, gyro, battery, and profile data.", Tag = MutedRole, Margin = new Padding(3, 4, 0, 2) });
+        details.Controls.Add(controllerStatus);
+        return Card("Xbox GIP service", details, serviceStatus, actions);
     }
 
     private static Control Card(string title, Control subtitle, Label status, Control actions)
@@ -186,6 +230,20 @@ internal sealed class LauncherForm : Form
         button.Click += click;
         actionButtons.Add(button);
         return button;
+    }
+
+    private static LinkLabel MakeLink(string text, EventHandler click)
+    {
+        var link = new LinkLabel
+        {
+            AutoSize = true,
+            Text = text,
+            Tag = LinkRole,
+            Margin = new Padding(0, 10, 14, 0),
+            TabStop = true,
+        };
+        link.LinkClicked += (_, _) => click(link, EventArgs.Empty);
+        return link;
     }
 
     private static Label StatusLabel() => new()
@@ -293,6 +351,14 @@ internal sealed class LauncherForm : Form
             case SecondaryButtonRole:
                 StyleButton((Button)control, palette.Card, palette.Text, palette.Border);
                 break;
+            case LinkRole:
+                var link = (LinkLabel)control;
+                link.BackColor = control.Parent?.BackColor ?? palette.Window;
+                link.ForeColor = palette.Muted;
+                link.LinkColor = palette.Accent;
+                link.ActiveLinkColor = ControlPaint.Light(palette.Accent, 0.15F);
+                link.VisitedLinkColor = palette.Accent;
+                break;
             default:
                 control.BackColor = palette.Window;
                 control.ForeColor = palette.Text;
@@ -320,6 +386,31 @@ internal sealed class LauncherForm : Form
             UpdateStatusColors();
         }
         catch (Exception error) { message.Text = error.GetBaseException().Message; }
+        RefreshControllerStatus(showError: true);
+        UpdateStartButton();
+    }
+
+    private void RefreshLiveStatus()
+    {
+        if (busy || !Visible || WindowState == FormWindowState.Minimized) return;
+        RefreshControllerStatus();
+        UpdateStartButton();
+    }
+
+    private void RefreshControllerStatus(bool showError = false)
+    {
+        if (busy || !Visible || WindowState == FormWindowState.Minimized) return;
+        try
+        {
+            controllerStatus.Text = "Controller: " + Program.GetControllerStatus(paths);
+            UpdateStatusColors();
+        }
+        catch (Exception error)
+        {
+            controllerStatus.Text = "Controller: status unavailable";
+            UpdateStatusColors();
+            if (showError) message.Text = error.GetBaseException().Message;
+        }
     }
 
     private void UpdateStatusColors()
@@ -328,7 +419,16 @@ internal sealed class LauncherForm : Form
         Color warning = darkMode ? Color.FromArgb(244, 184, 96) : Color.FromArgb(160, 100, 20);
         Color muted = darkMode ? Palette.Dark.Muted : Palette.Light.Muted;
         serviceStatus.ForeColor = serviceStatus.Text == "Running" ? good : warning;
+        controllerStatus.ForeColor = controllerStatus.Text.Contains("Connected in", StringComparison.Ordinal) ? good : warning;
         autostartStatus.ForeColor = autostartStatus.Text == "Auto-start installed" ? good : muted;
+    }
+
+    private void UpdateStartButton()
+    {
+        if (startButton is null || busy) return;
+        bool running = Program.IsPadForgeRunning(paths);
+        startButton.Text = running ? "PadForge running" : "Start PadForge";
+        startButton.Enabled = !running;
     }
 
     private void RunAction(string success, Action action)
@@ -342,10 +442,22 @@ internal sealed class LauncherForm : Form
         finally { SetBusy(false); RefreshStatus(); }
     }
 
+    private void RunUtilityAction(Action action)
+    {
+        try { action(); }
+        catch (Exception error)
+        {
+            message.Text = error.GetBaseException().Message;
+            MessageBox.Show(error.GetBaseException().Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
     private void SetBusy(bool busy)
     {
+        this.busy = busy;
         UseWaitCursor = busy;
         foreach (Button button in actionButtons) button.Enabled = !busy;
+        if (!busy) UpdateStartButton();
         Application.DoEvents();
     }
 

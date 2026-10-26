@@ -1,5 +1,7 @@
 # PadForge G7 Pro launcher
 
+Current launcher version: **1.2.0**.
+
 > [!IMPORTANT]
 > This is an unofficial community project. It is not affiliated with or
 > endorsed by PadForge, GameSir, Microsoft, or the SDL project. The downloadable
@@ -66,12 +68,13 @@ to confirm that its SDL import is still redirected.
   and exposes explicit install, uninstall, start, stop, and restart controls.
 
 The telemetry service and GameInput are separate parts of the data path. Before
-PadForge starts, the launcher asks the service to ensure that the controller is
-in Xbox GIP mode. A healthy `3537:109B` or `3537:109C` device is accepted
-without sending anything. For one healthy `3537:100A` dongle and exactly one
-connected XInput controller, the service sends the fixed `gamesirapp` mode-entry
-sequence once and waits for stable `3537:109C` enumeration. It never retries the
-sequence automatically.
+PadForge starts, the launcher uses the packaged SDL library in the interactive
+user session to identify the active controller. A healthy `3537:109B` or
+`3537:109C` device is accepted without sending anything. If SDL instead finds
+an active `3537:100A` G7 Pro, the launcher sends the fixed `gamesirapp`
+mode-entry sequence once through SDL and waits up to five seconds for Xbox GIP
+enumeration. It never retries the sequence automatically. The service is
+contacted only after SDL observes Xbox GIP mode.
 
 SDL uses GameInput for the controller's standard buttons, sticks, triggers, POV
 and rumble. The service directly opens the `\\.\XboxGIP_Admin` endpoint exposed by
@@ -104,9 +107,9 @@ That distinction matters for the non-8K G7 Pro in Xbox GIP mode:
 
 The service is consequently a deliberately small privilege boundary, not a
 second controller driver and not a virtual controller. On an explicit,
-authenticated launcher request it performs the fixed, guarded Xbox GIP
-mode-entry check described above. While SDL is connected, it performs only the
-operations that require the working security context: open `XboxGIP_Admin`,
+authenticated launcher request it verifies that Xbox GIP mode is present.
+While SDL is connected, it performs only the operations that require the
+working security context: open `XboxGIP_Admin`,
 subscribe to the target GIP device, maintain its verified `0x0F / F2 00`
 heartbeat, and read the GIP telemetry/status messages. The custom SDL DLL keeps
 all ordinary controls and rumble on GameInput and receives only the normalized
@@ -220,13 +223,16 @@ reliable configuration:
    `LaunchPadForge.exe`, and select **Start PadForge**. Only one SDL client
    should consume this telemetry path at a time.
 
-If the controller instead appears as one healthy `3537:100A` device, the
-launcher now asks the service to send the Xbox GIP mode-entry sequence once
-before starting PadForge. Disconnect other XInput controllers first, because
-the public XInput API cannot safely identify the correct slot when more than one
-is connected. Existing healthy `109B`/`109C` mode is always accepted without a
-transition. Missing, unhealthy, or ambiguous devices fail closed with reconnect
-guidance; the launcher never loops the mode-entry sequence.
+If the controller instead appears as `3537:100A`, the launcher sends the Xbox
+GIP mode-entry sequence once through SDL before starting PadForge. Other
+controllers, and the companion keyboard or mouse interfaces produced by a
+profile, do not make this state ambiguous. During USB re-enumeration, an Xbox
+GIP identity takes precedence if the old and new identities briefly overlap.
+Existing `109B`/`109C` mode is always accepted without a transition. If the
+transition window expires, the launcher distinguishes the absence of an active
+controller in either supported mode—including a receiver with its controller
+powered off—from a controller that was detected but did not complete the
+transition to Xbox GIP mode.
 
 The Nexus report-rate selection is not what enables the private SDL telemetry
 path. The tested controller was shown at 250 Hz, while its Xbox GIP telemetry
@@ -329,6 +335,14 @@ between **System**, **Light**, and **Dark**. The selection is stored in:
 ```
 
 This file stores both the theme preference and selected PadForge path.
+
+The footer shows the installed launcher version and provides direct links to
+this GitHub project and the local log folder. Controller status refreshes every
+three seconds while the launcher is visible and not minimized; the service and
+auto-start checks remain manual to avoid unnecessary background work. The same
+lightweight refresh also disables **Start PadForge** while PadForge is already
+running. During a launch, the button is disabled immediately and remains so
+until the existing PadForge process exits.
 
 The launcher and PadForge request administrator access, so its telemetry
 service controls do not need to create a second elevation prompt.
