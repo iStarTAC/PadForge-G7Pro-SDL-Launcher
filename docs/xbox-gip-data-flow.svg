@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="390" viewBox="0 0 1120 390" role="img" aria-labelledby="title desc">
+  <title id="title">GameSir G7 Pro data flow into PadForge</title>
+  <desc id="desc">Standard controls and rumble flow through GameInput. Protected paddle, IMU, battery, and status data flow through XboxGIP Admin and the LocalSystem telemetry service. SDL3 combines both paths and is the only controller API used by PadForge.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#52606d"/>
+    </marker>
+    <style>
+      .box { stroke-width: 2; }
+      .normal { fill: #eaf2ff; stroke: #2f6feb; }
+      .merge { fill: #dff7e7; stroke: #238636; }
+      .protected { fill: #fff2cc; stroke: #9a6700; }
+      .broker { fill: #ffe8e6; stroke: #cf222e; }
+      .flow { fill: none; stroke: #52606d; stroke-width: 2; marker-end: url(#arrow); }
+      .label { fill: #172b4d; font: 600 17px "Segoe UI", Arial, sans-serif; text-anchor: middle; }
+      .sub { fill: #364152; font: 14px "Segoe UI", Arial, sans-serif; text-anchor: middle; }
+      .edge-label { fill: #364152; font: 14px "Segoe UI", Arial, sans-serif; text-anchor: middle; }
+      .lane-label { fill: #52606d; font: 600 13px "Segoe UI", Arial, sans-serif; letter-spacing: .4px; }
+    </style>
+  </defs>
+
+  <rect width="1120" height="390" rx="16" fill="#ffffff"/>
+
+  <text class="lane-label" x="34" y="42">STANDARD SDL PATH</text>
+  <text class="lane-label" x="34" y="234">PRIVILEGED TELEMETRY PATH</text>
+
+  <path class="flow" d="M190 116 H238"/>
+  <path class="flow" d="M408 116 H478"/>
+  <path class="flow" d="M618 116 H788"/>
+  <path class="flow" d="M948 116 H990"/>
+
+  <path class="flow" d="M323 158 V278 H448"/>
+  <path class="flow" d="M638 310 H728"/>
+  <path class="flow" d="M828 272 V158"/>
+
+  <rect class="box normal" x="30" y="76" width="160" height="80" rx="12"/>
+  <text class="label" x="110" y="111">GameSir G7 Pro</text>
+  <text class="sub" x="110" y="134">controller</text>
+
+  <rect class="box normal" x="238" y="76" width="170" height="80" rx="12"/>
+  <text class="label" x="323" y="108">xboxgip.sys</text>
+  <text class="sub" x="323" y="133">Windows driver</text>
+
+  <rect class="box normal" x="478" y="76" width="140" height="80" rx="12"/>
+  <text class="label" x="548" y="122">GameInput</text>
+
+  <rect class="box merge" x="788" y="76" width="160" height="80" rx="12"/>
+  <text class="label" x="868" y="108">SDL3</text>
+  <text class="sub" x="868" y="133">single controller API</text>
+
+  <rect class="box merge" x="990" y="76" width="100" height="80" rx="12"/>
+  <text class="label" x="1040" y="122">PadForge</text>
+
+  <rect class="box protected" x="448" y="270" width="190" height="80" rx="12"/>
+  <text class="label" x="543" y="302">XboxGIP_Admin</text>
+  <text class="sub" x="543" y="327">protected endpoint</text>
+
+  <rect class="box broker" x="728" y="270" width="200" height="80" rx="12"/>
+  <text class="label" x="828" y="302">Telemetry service</text>
+  <text class="sub" x="828" y="327">LocalSystem broker</text>
+
+  <text class="edge-label" x="703" y="96">standard controls + rumble</text>
+  <text class="edge-label" x="969" y="98">SDL events</text>
+  <text class="edge-label" x="375" y="254">private GIP data</text>
+  <text class="edge-label" x="828" y="373">paddles + IMU + battery/status</text>
+</svg>

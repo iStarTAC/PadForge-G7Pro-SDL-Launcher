@@ -114,11 +114,12 @@ extra data through an authenticated local named pipe. The service remains
 passive until an authorized SDL client connects and stops the privileged reader
 when that client disconnects or telemetry stalls.
 
-```text
-G7 Pro -> xboxgip.sys -> GameInput -----------------> SDL -> PadForge
-                    \-> XboxGIP_Admin -> service --/     standard controls
-                                               paddles, IMU, battery/status
-```
+![GameSir G7 Pro data flow into PadForge](docs/xbox-gip-data-flow.svg)
+
+The editable Graphviz source is in
+[`docs/xbox-gip-data-flow.dot`](docs/xbox-gip-data-flow.dot). PadForge still sees
+one controller through SDL3: GameInput supplies standard controls and rumble,
+while the narrowly scoped service supplies only the protected extra telemetry.
 
 Putting the privileged reader directly in SDL would require running the whole
 interactive PadForge process as LocalSystem or finding a different supported

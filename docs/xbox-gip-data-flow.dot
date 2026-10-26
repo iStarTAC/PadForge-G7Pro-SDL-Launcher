@@ -1,0 +1,49 @@
+digraph XboxGipDataFlow {
+  graph [
+    rankdir=LR,
+    bgcolor="transparent",
+    pad=0.25,
+    nodesep=0.45,
+    ranksep=0.72,
+    splines=ortho,
+    fontname="Segoe UI"
+  ];
+
+  node [
+    shape=box,
+    style="rounded,filled",
+    color="#2F6FEB",
+    fillcolor="#EAF2FF",
+    fontcolor="#172B4D",
+    fontname="Segoe UI",
+    fontsize=12,
+    margin="0.18,0.12"
+  ];
+
+  edge [
+    color="#52606D",
+    fontcolor="#364152",
+    fontname="Segoe UI",
+    fontsize=10,
+    arrowsize=0.75,
+    penwidth=1.5
+  ];
+
+  controller [label="GameSir G7 Pro"];
+  driver [label="xboxgip.sys\nWindows driver"];
+  gameinput [label="GameInput"];
+  sdl [label="SDL3\n(single controller API)", fillcolor="#DFF7E7", color="#238636"];
+  padforge [label="PadForge", fillcolor="#DFF7E7", color="#238636"];
+
+  admin [label="XboxGIP_Admin\nprotected endpoint", fillcolor="#FFF2CC", color="#9A6700"];
+  service [label="Telemetry service\nLocalSystem broker", fillcolor="#FFE8E6", color="#CF222E"];
+
+  controller -> driver;
+  driver -> gameinput;
+  gameinput -> sdl [label="standard controls + rumble"];
+  sdl -> padforge [label="SDL events"];
+
+  driver -> admin [label="private GIP data"];
+  admin -> service;
+  service -> sdl [label="paddles + IMU + battery/status"];
+}
