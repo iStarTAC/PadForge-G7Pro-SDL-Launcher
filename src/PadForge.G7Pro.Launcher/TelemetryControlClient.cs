@@ -23,10 +23,8 @@ internal static class TelemetryControlClient
     public static string EnsureGipMode(uint expectedServiceProcessId)
     {
         using var pipe = new NamedPipeClientStream(".", PipeName, PipeDirection.InOut,
-            PipeOptions.None, TokenImpersonationLevel.Impersonation);
+            PipeOptions.Asynchronous, TokenImpersonationLevel.Impersonation);
         pipe.Connect(5000);
-        pipe.ReadTimeout = 15000;
-        pipe.WriteTimeout = 5000;
 
         if (!GetNamedPipeServerProcessId(pipe.SafePipeHandle, out uint serverProcessId))
             throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not verify the telemetry service control pipe.");
@@ -34,18 +32,22 @@ internal static class TelemetryControlClient
             throw new InvalidOperationException("The telemetry control pipe is not owned by the installed service process.");
 
         uint requestId = unchecked((uint)Environment.TickCount);
-        Span<byte> request = stackalloc byte[16];
+        byte[] request = new byte[16];
         BinaryPrimitives.WriteUInt32LittleEndian(request, Magic);
         BinaryPrimitives.WriteUInt16LittleEndian(request[4..], ProtocolVersion);
         BinaryPrimitives.WriteUInt16LittleEndian(request[6..], PrepareCommand);
         BinaryPrimitives.WriteUInt32LittleEndian(request[8..], requestId);
-        pipe.Write(request);
-        pipe.Flush();
 
-        Span<byte> response = stackalloc byte[24];
-        pipe.ReadExactly(response);
-        pipe.WriteByte(0); // Acknowledge the complete response before the server disconnects.
-        pipe.Flush();
+        byte[] response = new byte[24];
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        try
+        {
+            ExchangeAsync(pipe, request, response, timeout.Token).GetAwaiter().GetResult();
+        }
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+        {
+            throw new TimeoutException("The telemetry service did not respond to the Xbox GIP mode request.");
+        }
 
         uint signature = BinaryPrimitives.ReadUInt32LittleEndian(response);
         ushort protocol = BinaryPrimitives.ReadUInt16LittleEndian(response[4..]);
@@ -65,6 +67,19 @@ internal static class TelemetryControlClient
             2 => "entered successfully",
             _ => throw new InvalidDataException("The telemetry service returned an unknown Xbox GIP mode result."),
         };
+    }
+
+    private static async Task ExchangeAsync(
+        NamedPipeClientStream pipe,
+        byte[] request,
+        byte[] response,
+        CancellationToken cancellationToken)
+    {
+        await pipe.WriteAsync(request, cancellationToken).ConfigureAwait(false);
+        await pipe.FlushAsync(cancellationToken).ConfigureAwait(false);
+        await pipe.ReadExactlyAsync(response, cancellationToken).ConfigureAwait(false);
+        await pipe.WriteAsync(new byte[] { 0 }, cancellationToken).ConfigureAwait(false);
+        await pipe.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static Exception PrepareException(int error) => error switch
